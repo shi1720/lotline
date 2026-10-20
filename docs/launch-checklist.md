@@ -1,6 +1,6 @@
 # Lotline launch and submission gates
 
-Prepared 20 October 2026. An unchecked box means not independently confirmed by this document. Do not convert these into statements of completion without evidence.
+Prepared 20 October 2026. Completed checks are grounded in the build verification record; see verification.md. An unchecked box remains open. Do not convert these into statements of completion without evidence.
 
 ## Eligibility: resolve before entering
 
@@ -21,16 +21,19 @@ Use **25 October 2026, 11:59 PM Eastern**, or **26 October, 9:29 AM India Standa
 ## Keys and account access
 
 - [ ] Verify deployed Sites authentication and user-owned persistence with two genuine accounts. No Clerk key is necessary for Sites-provided authentication; no Clerk prize claim is made.
-- [ ] Optional: configure a server-side Anthropic API key if live AI column mapping is part of the final build. Create it in the Anthropic Console, enable billing or verified credits, set a small spending cap, and enter it through the hosting service's secret configuration. Never commit it or put it in a browser bundle. Do not claim a successful provider call until tested.
+- [x] Choose rule-based mapping fallback for this deployment. No live model key is needed or claimed.
+- [ ] Optional future integration: configure a server-side Anthropic API key if live AI column mapping becomes part of a later build. Create it in the Anthropic Console, enable billing or verified credits, set a small spending cap, and enter it through the hosting service's secret configuration. Never commit it or put it in a browser bundle. Do not claim a successful provider call until tested.
 - [ ] Confirm production hosting entitlements, database quotas, storage region and backup options. Free access for this build does not prove a production SLA.
-- [ ] Confirm GitHub publication rights, repo URL and public visibility. Inspect the published repository for secrets and confidential data.
+- [x] Verify public repository: https://github.com/shi1720/lotline.
+- [ ] Complete a final published-source secret/confidential-data review after the last commit.
 - [ ] Enter any private tokens only through a secure secret-entry flow. CAPTCHA, billing consent and account verification may require Shivam's interaction.
 
 ## Working application verification
 
-- [ ] Deployed home and sample workflow load in a fresh browser session.
-- [ ] Login/logout, save, reload and owner isolation pass. Account B cannot retrieve Account A's private workspace by changing an identifier.
-- [ ] Sample data is labeled synthetic and uses sesame SES-104 consistently.
+- [x] Public deployed application and sample load: https://lotline-recall.sg127977958.chatgpt.site.
+- [x] Production ChatGPT sign-in, workspace save to D1, reload and saved-workspace reopening exercised.
+- [ ] Complete logout and two genuine-account browser isolation. Injected-identity API ownership tests pass; forged identity headers on anonymous production requests returned 401.
+- [x] Public sample is synthetic and uses sesame SES-104 consistently.
 - [ ] Import errors are understandable; unknown columns and invalid rows do not silently disappear.
 - [ ] Confirm lot-to-batch-to-shipment trace and supporting source-row references.
 - [ ] Check missing and ambiguous lot handling; do not classify uncertain records as unaffected.
@@ -38,8 +41,13 @@ Use **25 October 2026, 11:59 PM Eastern**, or **26 October, 9:29 AM India Standa
 - [ ] CSV/JSON exports match the current reviewed state; spreadsheet formula values are safely escaped.
 - [ ] Print/PDF report is legible and includes drill labeling and uncertainty. Browser print-to-PDF is distinct from server-generated PDF.
 - [ ] Optional AI endpoint has authentication, input limits, timeout/error fallback and no exposed secret. Verify it sends only the intended fields.
-- [ ] Verify responsive/mobile layout, keyboard navigation and contrast.
-- [ ] Record commands, test results and known limitations in a reproducible verification report. Never call unrun tests passed.
+- [x] Inspect 390 × 844 responsive layout and mobile navigation.
+- [ ] Complete broader keyboard-navigation and contrast review.
+- [x] Record 22 engine/import +13 API +2 Worker tests, passing type/build checks and known limits in verification.md.
+- [x] Production receiving-CSV import in Replace mode and saved snapshot JSON download inspected, including dataset and result.
+- [x] Correction flow preserves original assignment and requires a nonempty note before confirming.
+- [ ] Publish final source fixes and repeat production smoke checks; the first verified deployment corresponds to 0a95369.
+- [ ] Add and run remote CI; local passing checks are not a CI run.
 
 ## Real customer readiness
 
@@ -52,7 +60,8 @@ Use **25 October 2026, 11:59 PM Eastern**, or **26 October, 9:29 AM India Standa
 ## Submission assembly
 
 - [ ] Confirm Best Overall entry; add sponsor categories only after genuine qualifying integrations exist and are evidenced.
-- [ ] Replace draft placeholders with the verified live app, public GitHub and video links.
+- [x] Add verified app and public repository links to README and Devpost draft.
+- [ ] Add the recorded/uploaded video link after no-login playback verification.
 - [ ] Review devpost.md against deployed behavior and actual test results. Remove conditional implementation notes before publication.
 - [ ] Disclose the Vinext starter, platform infrastructure and substantial Codex assistance. Credit Shivam Gupta as project creator without inventing manual implementation or user research.
 - [ ] Submit the actual Devpost project only once eligibility and form requirements are satisfied. Saving these documents is not submission.

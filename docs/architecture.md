@@ -38,7 +38,7 @@ flowchart LR
 
 ## Data model and trace semantics
 
-A receipt captures ingredient, supplier lot, supplier, date, quantity/unit and source coordinates. A production row consumes an ingredient lot into a named finished batch and records batch output in its own quantity/unit. A shipment references a finished batch, product, customer, date and quantity/unit. Each row retains an ID, filename and source-row number.
+A receipt captures ingredient, supplier lot, supplier, date, quantity/unit and source coordinates. A production row consumes an ingredient lot into a named finished batch and records batch output in its own quantity/unit. A shipment references a finished batch, product, customer, date and quantity/unit. Each row retains an ID, filename and source-row number. A manually corrected shipment also retains originalBatch, a required nonempty correctionNote and an ISO correctedAt timestamp; the interface and exports distinguish the correction from the original assignment.
 
 For SES-104 the sample has 100 kg received; 60 kg feeds CR-201 and 30 kg feeds CR-202. Those batches produce 600 and 300 cases respectively. Three confirmed customer shipment rows account for 650 cases, leaving a calculated 250-case balance. One 40-case Sesame Crunch shipment has no batch and stays in review scope. SES-105 and its CR-203 batch provide an unrelated comparison. Totals never convert ingredient kilograms into cases.
 
@@ -68,6 +68,6 @@ Strict response shape, canonical-field completeness, known-header checks and dup
 
 ## Test evidence and deployment status
 
-On Node 22.16.0, 12 domain/import tests and 12 API tests passed. API tests use actual route handlers bundled for Node, in-memory SQLite and injected D1/identity adapters. They do not exercise Sites production identity injection, Cloudflare networking, live Anthropic or browser interaction. Their scope should not be overstated.
+The current passing suite comprises 22 engine/import tests, 13 API tests and 2 Worker integration tests (37 total). TypeScript checking and production build pass. The Node API suite uses actual route handlers, in-memory SQLite and injected D1/identity adapters; separate Worker tests cover the Worker boundary. Browser and production HTTP checks are listed independently in verification.md. The API identity adapter tests do not constitute two genuine-account hosted browser isolation. No live Anthropic call is claimed.
 
-The planned public repository and live domain are listed in README.md. Publication and live verification remain separate from this architecture document. Follow docs/launch-checklist.md before treating the service as ready for actual customer records.
+The [public repository](https://github.com/shi1720/lotline) and [live application](https://lotline-recall.sg127977958.chatgpt.site) are accessible. Production browser checks verified hosted sign-in, D1 save/reopen, snapshot save/download, CSV import and responsive mobile layout. The first verified deployment corresponds to `0a95369`; follow-up source changes require redeployment. See verification.md for exact boundaries. Follow docs/launch-checklist.md before treating the service as ready for actual customer records.

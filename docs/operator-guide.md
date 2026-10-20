@@ -28,13 +28,13 @@ The dataset limit is 5,000 total records, with a separate 1 MiB server JSON limi
 
 Open the trace's review findings, then inspect the original shipment row. The sample's unresolved row is `shipments.csv`, row 5: 40 cases of Sesame Crunch to Cedar Market, with no batch recorded.
 
-If independent original documentation establishes the correct batch, choose it under **Assign only after checking your original record** and accept the confirmation. The trace recalculates; save the workspace to retain that revision. If the assignment cannot be verified, leave it unresolved. The record remains in exports for review. Never select a batch merely to make the warning disappear.
+If independent original documentation establishes the correct batch, choose it under **Assign only after checking your original record**, enter a nonempty correction note and confirm. Confirmation remains disabled until a note is supplied. The trace recalculates; save the workspace to retain that revision. If the assignment cannot be verified, leave it unresolved. The record remains in exports for review. Never select a batch merely to make the warning disappear.
 
-Source-row coordinates identify the import location, not independent proof that a later manual assignment was present in the original file. Retain the original source documentation and reviewer explanation outside the tool as appropriate.
+The correction preserves originalBatch, correctionNote and correctedAt. Evidence and exports distinguish the reviewed assignment from the original imported batch field. Source coordinates still identify the import location; retain the supporting original documentation for the correction.
 
 ## Save and return
 
-**Save workspace** starts ChatGPT sign-in if necessary. A full-page sign-in can clear unsaved page state: use **Download unsaved record backup** first, then restore the JSON through the import dialog after returning. The public sample does not require login.
+**Save workspace** starts ChatGPT sign-in if necessary. A temporary sessionStorage draft protects unsaved records through full-page sign-in. On return the draft is validated, restored and removed from sessionStorage. Download an unsaved JSON backup as an additional safeguard. Restoring a backup opens a new workspace and clears the previous active workspace/history association. The public sample does not require login.
 
 After signing in, name and save the workspace. Open the workspace switcher to reopen saved datasets, rename/save the current one, load a sample or delete a workspace. Deletion removes the workspace and its drill/activity records from the application database. Backup retention is governed separately by hosting operations.
 

@@ -2,7 +2,7 @@
 
 Use the compact cut unless the final organizer instructions confirm that four minutes are accepted. Devpost currently says up to four minutes; the organizer's Luma listing says two. Record real interactions and actual exports. The scripted business and incident are fictional.
 
-Full-cut target: **3:35–3:50**, including deliberate screen pauses. Narration has 470 words; rehearse at 140–145 words/minute, then trim dead time. Route: **Trace workspace → evidence modal → Review queue → Source records/import → Export trace → Drill history**. Pre-sign in and save the sample workspace only if hosted persistence is verified. Otherwise omit the saved-history sentence and show that surface as an available implementation, without pretending a save succeeded.
+Full-cut target: **3:35–3:50**, including deliberate screen pauses. Narration has 470 words; rehearse at 140–145 words/minute, then trim dead time. Route: **Trace workspace → evidence modal → Review queue → Source records/import → Export trace → Drill history**. Hosted sign-in, workspace save/reopen and drill snapshot save/download have been verified. Pre-sign in, save the sample workspace and use a genuine saved snapshot in the recording. Keep the recording sample unresolved.
 
 ## Full cut: read verbatim
 
@@ -46,11 +46,11 @@ Shot: Source records, sample downloads; open import dialog with a rehearsed samp
 
 “Source records shows the receiving, production, and shipment tables. To bring existing files, choose a record type, upload a C S V, and review the column mapping before importing.
 
-Optional A I can suggest those mappings when configured. The explicit action discloses that headers and up to three sample rows may go to Anthropic. Without a configured provider, the application honestly returns rules. The lineage stays deterministic.”
+The mapping endpoint can optionally use A I, with explicit disclosure before sending headers and sample rows. This deployment deliberately uses the rule-based fallback, so no live model key is needed. The lineage stays deterministic.”
 
 ### 2:52–3:20 — Keep the evidence
 
-Shot: close import; Export trace; show CSV/JSON options and browser PDF preview. If verified signed-in save works, show Drill history with an actual snapshot.
+Shot: close import; Export trace; show CSV/JSON options and browser PDF preview. Show Drill history with an actual saved snapshot.
 
 “Export trace includes confirmed links and unresolved records. Download the C S V, the complete evidence J S O N, or use the print-ready report to save a P D F.
 
@@ -90,11 +90,11 @@ Shot: source row, then unresolved 40-case row and assignment selector.
 
 Shot: Source records, import mapping, export choices.
 
-“Import receiving, production and shipment C S V files with reviewed column mappings. Optional A I can suggest mappings when configured; the trace itself stays deterministic. Export confirmed links and unresolved records as C S V, complete J S O N, or a print-ready P D F.”
+“Import receiving, production and shipment C S V files with reviewed column mappings. This deployment uses rule-based mapping suggestions; the trace stays deterministic. Export confirmed links and unresolved records as C S V, complete J S O N, or a print-ready P D F.”
 
 ### 1:35–1:57
 
-Shot: actual saved history if verified, then closing overview.
+Shot: actual saved history, then closing overview.
 
 “Signed-in workspaces support saved records and rehearsal snapshots. We're starting with small manufacturers who already use spreadsheets. Demand and pricing still need validation. Lotline: find the lot, follow the records, see what is missing.”
 
@@ -117,6 +117,6 @@ Shot: actual saved history if verified, then closing overview.
 - Keep the sample unresolved. Reset it through the workspace switcher if any rehearsal changed the batch assignment.
 - The sample is 2 receipts + 3 production rows + 5 shipments. Do not claim all 5 shipment rows are tied to SES-104.
 - Do not imply that Anthropic was called unless a configured live call has been verified. The initial tests use mocked responses.
-- If sign-in/persistence has not been verified, remove those narration sentences instead of staging a fake save.
+- Rehearse sign-in, save and snapshot retrieval on the final deployed version before recording. Use the genuinely saved records.
 - Keep all uncertainty and drill labels visible. No fabricated users, testimonials, performance benchmarks or compliance claims.
 - Video must be publicly viewable without login. Verify duration and playback from an unauthenticated window.

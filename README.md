@@ -38,11 +38,12 @@ Portable development simulates sign-in at `/signin-with-chatgpt?return_to=/` wit
 ```sh
 node --experimental-strip-types --test tests/trace.test.ts
 node --test tests/api.test.mjs
+node --test tests/api-worker.test.mjs
 npx tsc --noEmit
 npm run build
 ```
 
-The 12 engine/import tests and 12 API tests passed locally on 20 October 2026. API tests execute actual handlers against SQLite with injected platform identity and D1 adapters. They cover authorization, cross-origin rejection, input limits, revision conflicts, snapshots, quotas and model-output validation. AI responses are mocked: no live Anthropic call or hosted authentication round trip is established by those tests. Build and browser verification should be recorded separately in the launch checklist.
+The 22 engine/import tests, 13 API tests and 2 Worker integration tests passed: **37 tests total**. TypeScript checking and the production build also passed. API tests execute actual handlers against SQLite with injected platform identity and D1 adapters. They cover authorization, cross-origin rejection, input limits, revision conflicts, snapshots, quotas and model-output validation. AI responses are mocked; no live Anthropic call is claimed. Separate production browser checks verified ChatGPT sign-in, D1 workspace save/reopen, a saved multiline-note drill, downloaded snapshot JSON, CSV import and the mobile layout. Two genuine-account browser isolation has not been tested; injected-identity isolation tests pass. See [verification evidence](docs/verification.md) for scope and limits.
 
 ## Architecture
 
@@ -52,7 +53,7 @@ The 12 engine/import tests and 12 API tests passed locally on 20 October 2026. A
 - Cloudflare D1 with versioned workspace data, database-generated activity events and immutable drill snapshots.
 - Optional server-side Anthropic column-mapping suggestions. No key is required for rule-based mapping or deterministic trace computation.
 
-Optional Worker secret: `ANTHROPIC_API_KEY`. Optional setting: `ANTHROPIC_MODEL` (default `claude-haiku-4-5-20251001`). Configure secrets through your hosting environment; never expose them in browser variables or commit them. **Suggest mapping** sends headers and up to three sample rows after an explicit user action; when configured these go to Anthropic. A missing key, provider error, timeout, invalid output or quota limit yields an honestly labeled rules fallback. Live provider access has not been verified.
+Optional Worker secret: `ANTHROPIC_API_KEY`. Optional setting: `ANTHROPIC_MODEL` (default `claude-haiku-4-5-20251001`). Configure secrets through your hosting environment; never expose them in browser variables or commit them. **Suggest mapping** sends headers and up to three sample rows after an explicit user action; when configured these go to Anthropic. A missing key, provider error, timeout, invalid output or quota limit yields an honestly labeled rules fallback. The selected deployment uses the rule-based fallback; no live provider key is needed or claimed.
 
 See [architecture](docs/architecture.md), [operator guide](docs/operator-guide.md), [security](SECURITY.md), [commercial thesis](docs/business.md), and [launch checklist](docs/launch-checklist.md).
 
@@ -64,11 +65,16 @@ Lotline does not decide food safety, recall necessity or legal compliance. Befor
 
 ## Project publication
 
-Planned repository: `https://github.com/shi1720/lotline`.
-Planned live address: `https://lotline-recall.sg127977958.chatgpt.site`.
+[Public repository](https://github.com/shi1720/lotline) · [Live application](https://lotline-recall.sg127977958.chatgpt.site)
 
-These are target addresses, not confirmation of publication. Verify accessibility before using them in a submission. Video recording and Devpost submission remain separate steps. Official eligibility requires Canadian residence; see the launch checklist for registration and Toronto attendance gates.
+The public application and repository have been verified accessible. The first verified production deployment corresponds to commit `0a95369`; subsequent fixes require a fresh deployment and smoke check. Video recording and Devpost submission remain separate steps. Official eligibility requires Canadian residence; see the launch checklist for registration and Toronto attendance gates.
 
 ## License and attribution
 
 Lotline-authored code is MIT licensed, copyright 2026 Shivam Gupta. Retain third-party notices, including `build/sites-vite-plugin.LICENSE` and `vendor/shadcn-tailwind-4.13.0.LICENSE.md`. Dependencies retain their own licenses. The MIT license does not replace those notices.
+
+## Product view
+
+![Deployed synthetic lot trace](docs/assets/trace-workspace.png)
+
+The screenshot shows synthetic supplier, batch and customer records. The dashed shipment remains unresolved.

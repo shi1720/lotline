@@ -26,7 +26,7 @@ The project targets **Best Overall**. We are not claiming Expo, Clerk, Eon or Su
 
 ## What we tested
 
-Twelve deterministic engine/import tests and twelve API tests pass locally on Node 22.16.0. They cover the sample arithmetic, missing/unknown associations, malformed CSV, incompatible units, schema validation, ownership isolation, origin checks, request limits, stale-write conflicts, immutable snapshots, quotas and mocked AI output validation. API tests exercise the actual handlers against SQLite with injected platform identity and D1 bindings. They do not by themselves establish hosted authentication, production data residency or live model access.
+Twenty-two engine/import tests, thirteen API tests and two Worker integration tests pass: thirty-seven in total. TypeScript checking and the production build also pass. They cover the sample arithmetic, missing/unknown associations, malformed CSV, incompatible units, schema validation, ownership isolation, origin checks, request limits, stale-write conflicts, immutable snapshots, quotas and mocked AI output validation. API tests exercise the actual handlers against SQLite with injected platform identity and D1 bindings. Separate production browser checks verified ChatGPT sign-in, D1 workspace save/reopen, a drill snapshot with multiline notes, snapshot JSON download, receiving-CSV import and a 390 × 844 mobile layout. Production probes confirmed the root response and rejected anonymous requests carrying forged identity headers. Two genuine-account browser isolation has not been tested; production data residency and live model access are not claimed.
 
 ## Why this approach
 
@@ -52,4 +52,6 @@ The application began from a Vinext starter. The Lotline product interface, trac
 
 ## Publication status
 
-The intended repository is `https://github.com/shi1720/lotline` and the intended app address is `https://lotline-recall.sg127977958.chatgpt.site`. Publication and external accessibility have not yet been confirmed in this document. Video recording and Devpost submission are also pending. Verify these artifacts before replacing this status with live links.
+[Live application](https://lotline-recall.sg127977958.chatgpt.site) · [Public source repository](https://github.com/shi1720/lotline)
+
+The app and repository are public and externally accessible. The deployment uses the rule-based mapping fallback by choice; no live model key is required. Video recording and Devpost submission remain pending. Official residency/registration eligibility and Toronto attendance must still be confirmed before entry.
