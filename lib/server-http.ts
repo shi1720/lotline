@@ -11,6 +11,11 @@ export class ApiError extends Error {
   }
 }
 export const MAX_BODY_BYTES = 1_048_576;
+export const MAX_STORAGE_BYTES = 25 * 1024 * 1024;
+// Two bound user IDs scope both sides of the aggregate. BLOB length counts UTF-8
+// bytes, rather than SQLite text characters, including multiline reviewer notes.
+export const USER_STORAGE_BYTES_SQL = `(COALESCE((SELECT SUM(length(CAST(dataset AS BLOB))) FROM workspaces WHERE user_id = ?), 0) + COALESCE((SELECT SUM(length(CAST(d.dataset AS BLOB)) + length(CAST(d.result AS BLOB)) + length(CAST(d.notes AS BLOB))) FROM drills d JOIN workspaces w ON w.id = d.workspace_id WHERE w.user_id = ?), 0))`;
+
 export function json(data: unknown, status = 200) {
   return Response.json(data, {
     status,

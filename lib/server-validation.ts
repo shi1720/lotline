@@ -28,6 +28,14 @@ export const isoDate = z
       !Number.isNaN(date.valueOf()) && date.toISOString().slice(0, 10) === value
     );
   }, "Must be a real ISO calendar date (YYYY-MM-DD).");
+const sourceKey = nonempty(120).refine(
+  (key) => !["__proto__", "constructor", "prototype"].includes(key),
+  "This reserved object key cannot be used as a source column.",
+);
+export const sourceDataSchema = z.record(sourceKey, multilineNote(2000)).refine(
+  (row) => Object.keys(row).length <= 80,
+  "At most 80 source columns are supported.",
+);
 const quantity = z.number().finite().positive().max(1_000_000_000);
 const common = {
   id: nonempty(512),
@@ -35,6 +43,7 @@ const common = {
   row: z.number().int().min(1).max(1_000_000),
   quantity,
   unit: nonempty(40),
+  sourceData: sourceDataSchema.optional(),
 };
 export const receiptSchema = z
   .object({

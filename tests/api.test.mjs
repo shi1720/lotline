@@ -60,6 +60,15 @@ test('shipment correction evidence is optional, bounded, complete and preserves 
  assert.equal((await api.drills.POST(req('POST',{lot:'LOT-1',notes:'bad\rnote'}),{params:Promise.resolve({id:workspace.id})})).status,400);
  await api.workspace.DELETE(req('DELETE'),{params:Promise.resolve({id:workspace.id})});
 });
+test('original source cells survive persistence with LF notes and reject oversized/control or pollution keys',async()=>{
+ const records=structuredClone(dataset);
+ for(const kind of ['receipts','production','shipments'])records[kind][0].sourceData={Address:'12 Cedar Street',Notes:'First source line\nSecond source line',Batch:kind==='shipments'?'unassigned':''};
+ const response=await api.workspaces.POST(req('POST',{name:'Full source evidence',dataset:records}));assert.equal(response.status,201);const {workspace}=await response.json();
+ for(const kind of ['receipts','production','shipments'])assert.deepEqual(workspace.dataset[kind][0].sourceData,records[kind][0].sourceData);
+ const badSources=[{Notes:'x'.repeat(2001)},{Notes:'bad\rnote'},{Notes:'bad\u0000note'},{['x'.repeat(121)]:'value'},{['bad\nheader']:'value'},Object.fromEntries(Array.from({length:81},(_,i)=>['column'+i,'value'])),JSON.parse('{"__proto__":"pollution"}'),{constructor:'pollution'},{prototype:'pollution'}];
+ for(const sourceData of badSources){const invalid=structuredClone(dataset);invalid.shipments[0].sourceData=sourceData;assert.equal((await api.workspaces.POST(req('POST',{name:'Bad source data',dataset:invalid}))).status,400);}
+ await api.workspace.DELETE(req('DELETE'),{params:Promise.resolve({id:workspace.id})});
+});
 test('missing lineage stays representable and receipt creation produces a server audit event',async()=>{
  const missing=structuredClone(dataset);missing.shipments[0].batch='';
  const response=await api.workspaces.POST(req('POST',{name:'Recall exercise',dataset:missing}));assert.equal(response.status,201);
@@ -124,4 +133,34 @@ test('workspace quota enforced inside the insert; delete clears dependent record
  assert.equal((await api.workspace.GET(req('GET'),context())).status,404);
  assert.equal(sqlite.prepare('SELECT COUNT(*) AS count FROM drills WHERE workspace_id=?').get(workspaceId).count,0);
  assert.equal(sqlite.prepare('SELECT COUNT(*) AS count FROM events WHERE workspace_id=?').get(workspaceId).count,0);
+});
+test('25 MiB tenant quota counts actual UTF-8 bytes and bounds create/update/drill atomically without blocking shrink or delete',async()=>{
+ const previousUser=globalThis.__lotlineUser;globalThis.__lotlineUser={userId:'quota-owner'};
+ const quotaDataset=structuredClone(dataset);quotaDataset.receipts[0].supplier='Épices Montréal';
+ const create=async(name,records)=>{const response=await api.workspaces.POST(req('POST',{name,dataset:records}));assert.equal(response.status,201);return (await response.json()).workspace;};
+ const target=await create('Quota target',quotaDataset),holder=await create('Quota fixture holder',{receipts:[],production:[],shipments:[]});
+ const used=()=>sqlite.prepare(`SELECT ${api.http.USER_STORAGE_BYTES_SQL} AS bytes`).get('quota-owner','quota-owner').bytes;
+ const quota=api.http.MAX_STORAGE_BYTES;let remaining=quota-used(),fixtureIndex=0;
+ // Seed bounded, valid JSON snapshots without 25+ expensive application calls.
+ // Multibyte text catches an incorrect length(TEXT) implementation.
+ while(remaining>0){
+  const bytes=Math.min(1_000_000,remaining);assert.ok(bytes>=4);
+  const payload='é'.repeat(Math.floor((bytes-4)/2))+((bytes-4)%2?'x':'');
+  sqlite.prepare("INSERT INTO drills (id,workspace_id,lot,notes,result,dataset,revision,created_at) VALUES (?,?,?,'',?,'{}',1,?)").run(`quota-fixture-${fixtureIndex++}`,holder.id,'fixture',JSON.stringify(payload),'2026-10-20T12:00:00Z');
+  remaining-=bytes;
+ }
+ assert.equal(used(),quota);
+ const characterCount=sqlite.prepare('SELECT SUM(length(result)) AS chars FROM drills WHERE workspace_id=?').get(holder.id).chars;assert.ok(characterCount<quota/2+1000);
+ let response=await api.workspaces.POST(req('POST',{name:'Over storage quota',dataset:{receipts:[],production:[],shipments:[]}}));assert.equal(response.status,409);assert.match((await response.json()).error,/25 MiB/);
+ const targetContext={params:Promise.resolve({id:target.id})};
+ response=await api.workspace.PUT(req('PUT',{dataset:quotaDataset,revision:1}),targetContext);assert.equal(response.status,200);assert.equal((await response.json()).workspace.revision,2);assert.equal(used(),quota);
+ const larger=structuredClone(quotaDataset);larger.receipts[0].supplier+='x';response=await api.workspace.PUT(req('PUT',{dataset:larger,revision:2}),targetContext);assert.equal(response.status,409);assert.match((await response.json()).error,/25 MiB/);assert.equal(used(),quota);
+ assert.equal((await api.drills.POST(req('POST',{lot:'LOT-1',notes:'New drill'}),targetContext)).status,409);assert.equal(used(),quota);
+ // Another tenant's valid record cannot be denied by this account's quota.
+ globalThis.__lotlineUser={userId:'quota-neighbour'};const neighbour=await create('Independent account',{receipts:[],production:[],shipments:[]});await api.workspace.DELETE(req('DELETE'),{params:Promise.resolve({id:neighbour.id})});globalThis.__lotlineUser={userId:'quota-owner'};
+ // A smaller replacement subtracts the old dataset, rather than double charging it.
+ response=await api.workspace.PUT(req('PUT',{dataset:{receipts:[],production:[],shipments:[]},revision:2}),targetContext);assert.equal(response.status,200);assert.ok(used()<quota);
+ assert.equal((await api.workspace.DELETE(req('DELETE'),{params:Promise.resolve({id:holder.id})})).status,200);assert.ok(used()<1000);
+ assert.equal((await api.drills.POST(req('POST',{lot:'LOT-1',notes:'Storage released'}),targetContext)).status,201);
+ await api.workspace.DELETE(req('DELETE'),targetContext);assert.equal(used(),0);globalThis.__lotlineUser=previousUser;
 });

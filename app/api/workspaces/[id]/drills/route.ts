@@ -6,6 +6,8 @@ import {
   route,
   ApiError,
   ownedWorkspace,
+  MAX_STORAGE_BYTES,
+  USER_STORAGE_BYTES_SQL,
   type IdContext,
 } from "@/lib/server-http";
 import { drillSchema } from "@/lib/server-validation";
@@ -35,7 +37,7 @@ export const GET = route(async (_request: Request, context: IdContext) => {
     { id } = await context.params,
     db = database();
   await ownedWorkspace(db, id, userId);
-  // A 100-snapshot workspace can contain 100 MB; list metadata only. A single snapshot has its own read endpoint.
+  // List metadata only; full saved evidence is available through the individual snapshot endpoint.
   const { results } = await db
     .prepare(
       "SELECT id, lot, notes, revision, created_at FROM drills WHERE workspace_id = ? ORDER BY created_at DESC, id DESC LIMIT 100",
@@ -71,7 +73,7 @@ export const POST = route(async (request: Request, context: IdContext) => {
     );
   const drill = await db
     .prepare(
-      "INSERT INTO drills (id, workspace_id, lot, notes, result, dataset, revision, created_at) SELECT ?, id, ?, ?, ?, dataset, revision, ? FROM workspaces WHERE id = ? AND user_id = ? AND revision = ? AND (SELECT COUNT(*) FROM drills WHERE workspace_id = ?) < 100 RETURNING *",
+      `INSERT INTO drills (id, workspace_id, lot, notes, result, dataset, revision, created_at) SELECT ?, id, ?, ?, ?, dataset, revision, ? FROM workspaces WHERE id = ? AND user_id = ? AND revision = ? AND (SELECT COUNT(*) FROM drills WHERE workspace_id = ?) < 100 AND ${USER_STORAGE_BYTES_SQL} + length(CAST(workspaces.dataset AS BLOB)) + length(CAST(? AS BLOB)) + length(CAST(? AS BLOB)) <= ? RETURNING *`,
     )
     .bind(
       crypto.randomUUID(),
@@ -83,12 +85,17 @@ export const POST = route(async (request: Request, context: IdContext) => {
       userId,
       workspace.revision,
       id,
+      userId,
+      userId,
+      serializedResult,
+      input.notes,
+      MAX_STORAGE_BYTES,
     )
     .first<DrillRow>();
   if (!drill)
     throw new ApiError(
       409,
-      "Snapshot limit reached (100), or records changed during the drill. Reload before retrying.",
+      "Snapshot limit (100), account storage limit (25 MiB), or changed records prevented this save. Delete a workspace to free storage, or reload before retrying.",
     );
   return json({ drill: publicDrill(drill) }, 201);
 });

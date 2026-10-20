@@ -133,3 +133,15 @@ export const demoDataset: Dataset = {
     },
   ],
 };
+
+// Demo source rows use exactly the canonical CSV columns (all record fields except
+// application metadata). Numeric source cells remain strings, like CSV imports.
+for (const records of Object.values(demoDataset)) {
+  for (const record of records) {
+    record.sourceData = Object.fromEntries(
+      Object.entries(record)
+        .filter(([field]) => !["id", "source", "row", "sourceData"].includes(field))
+        .map(([field, value]) => [field, String(value)]),
+    );
+  }
+}

@@ -13,13 +13,13 @@ Both artifacts were verified public and accessible. The first verified productio
 
 | Check | Result | Scope and limit |
 |---|---|---|
-| Engine/import suite | 22 passed | Deterministic lineage, arithmetic, missing/ambiguous records, CSV parsing, input validation and correction provenance |
-| API suite | 13 passed | Actual handlers against SQLite with injected platform identity/D1 adapters; ownership isolation, mutations, revisions, snapshots, quotas and mocked provider behavior |
+| Engine/import suite | 24 passed | Deterministic lineage, arithmetic, missing/ambiguous records, CSV parsing, input validation and correction provenance |
+| API suite | 15 passed | Actual handlers against SQLite with injected platform identity/D1 adapters; ownership isolation, mutations, revisions, snapshots, quotas and mocked provider behavior |
 | Worker integration suite | 2 passed | Worker-runtime integration cases; complements rather than replaces hosted browser checks |
 | TypeScript | Passed | Static type checking with `npx tsc --noEmit` |
 | Production build | Passed | `npm run build`; a successful build alone is not a deployed-service check |
 
-**Total: 37 passing tests.** API model responses are mocked. No live Anthropic provider call or production model key is claimed. The deployment intentionally uses the rule-based mapping fallback selected for this build.
+**Total: 41 passing tests.** API model responses are mocked. No live Anthropic provider call or production model key is claimed. The deployment intentionally uses the rule-based mapping fallback selected for this build.
 
 Reproduce from the project root:
 
@@ -59,9 +59,13 @@ This is evidence about the exercised hosted boundary. It is not a penetration te
 
 ## Source-level fixes and their scope
 
-A manual batch correction retains `originalBatch`, requires a nonempty `correctionNote`, and records ISO `correctedAt`; evidence/export surfaces distinguish those values from original imports. The earlier concern that a changed assignment could appear to have existed in the original CSV has been addressed in the current source and exercised correction flow.
+A manual batch correction retains `originalBatch`, requires a nonempty `correctionNote`, and records ISO `correctedAt`; evidence/export surfaces distinguish those values from original imports. The earlier concern that a changed assignment could appear to have existed in the original CSV has been addressed in the current source and exercised correction flow. Full CSV sourceData preserves mapped and unmapped columns separately, including original whitespace and multiline cells (CRLF/CR normalized to LF). The evidence modal distinguishes Original CSV row from normalized/current values and corrections. Schemas reject dangerous object keys and control characters while bounding source columns and cell sizes.
 
 Sign-in draft handling uses temporary sessionStorage: a restored draft is schema-validated and its temporary copy is removed. Restoring a JSON backup opens a new workspace and clears the previous active workspace/history association. These are ephemeral safeguards, not a substitute for durable save or a recovery guarantee. Include these final fixes in the next deployed revision and smoke check.
+
+The 25 MiB aggregate per-user payload quota is enforced through atomic SQL byte-count predicates across workspace and snapshot payloads. Tests include multibyte input, quota rejection for create/update/drill, equal-size and shrinking updates at quota, tenant separation and deletion freeing bytes. The public `/privacy` page documents retention/deletion, temporary draft handling, fonts and unguaranteed hosting-region details. Final source changes require the final deployment/revision check noted above.
+
+Dependency audit status is recorded in SECURITY.md: production-only audit reports zero findings; the full dependency graph still has eight high entries from an unresolved braces 3.0.3 advisory chain, with zero critical. No clean full-graph audit is claimed, and RSC runtime dependencies are considered despite their package classification.
 
 ## Explicitly not established
 

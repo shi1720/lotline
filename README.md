@@ -10,7 +10,7 @@ Created by **Shivam Gupta** for Build North 2026, with substantial Codex assista
 
 1. Open **Trace workspace**. The synthetic Cedar & Crumb sample is preloaded; no account is needed to explore it.
 2. Trace sesame lot **SES-104**. Its 100 kg receipt connects to batches **CR-201** and **CR-202**: 90 kg recorded ingredient use, 900 cases produced, 650 cases shipped to three customers, and a 250-case calculated balance.
-3. Open a lineage card to inspect the original filename and row reference.
+3. Open a lineage card to inspect the original filename and row reference. CSV imports preserve mapped and unmapped source cells separately from normalized values and reviewed corrections.
 4. Inspect the separate **40-case shipment with no batch assignment**. It remains unresolved; it is not silently included in or excluded from the confirmed 650 cases.
 5. Choose **Export trace** for CSV, complete evidence JSON, or a print-ready report saved as PDF through the browser.
 6. Sign in to save a private workspace and record an immutable rehearsal snapshot under **Drill history**.
@@ -43,7 +43,7 @@ npx tsc --noEmit
 npm run build
 ```
 
-The 22 engine/import tests, 13 API tests and 2 Worker integration tests passed: **37 tests total**. TypeScript checking and the production build also passed. API tests execute actual handlers against SQLite with injected platform identity and D1 adapters. They cover authorization, cross-origin rejection, input limits, revision conflicts, snapshots, quotas and model-output validation. AI responses are mocked; no live Anthropic call is claimed. Separate production browser checks verified ChatGPT sign-in, D1 workspace save/reopen, a saved multiline-note drill, downloaded snapshot JSON, CSV import and the mobile layout. Two genuine-account browser isolation has not been tested; injected-identity isolation tests pass. See [verification evidence](docs/verification.md) for scope and limits.
+The 24 engine/import tests, 15 API tests and 2 Worker integration tests passed: **41 tests total**. TypeScript checking and the production build also passed. API tests execute actual handlers against SQLite with injected platform identity and D1 adapters. They cover authorization, cross-origin rejection, input limits, revision conflicts, snapshots, quotas and model-output validation. AI responses are mocked; no live Anthropic call is claimed. Separate production browser checks verified ChatGPT sign-in, D1 workspace save/reopen, a saved multiline-note drill, downloaded snapshot JSON, CSV import and the mobile layout. Two genuine-account browser isolation has not been tested; injected-identity isolation tests pass. See [verification evidence](docs/verification.md) for scope and limits.
 
 ## Architecture
 
@@ -54,6 +54,8 @@ The 22 engine/import tests, 13 API tests and 2 Worker integration tests passed: 
 - Optional server-side Anthropic column-mapping suggestions. No key is required for rule-based mapping or deterministic trace computation.
 
 Optional Worker secret: `ANTHROPIC_API_KEY`. Optional setting: `ANTHROPIC_MODEL` (default `claude-haiku-4-5-20251001`). Configure secrets through your hosting environment; never expose them in browser variables or commit them. **Suggest mapping** sends headers and up to three sample rows after an explicit user action; when configured these go to Anthropic. A missing key, provider error, timeout, invalid output or quota limit yields an honestly labeled rules fallback. The selected deployment uses the rule-based fallback; no live provider key is needed or claimed.
+
+Storage is capped at 25 MiB per user across workspace dataset and snapshot payloads, in addition to row/request/workspace limits. A public [privacy notice](https://lotline-recall.sg127977958.chatgpt.site/privacy) describes data handling and remaining hosting limitations.
 
 See [architecture](docs/architecture.md), [operator guide](docs/operator-guide.md), [security](SECURITY.md), [commercial thesis](docs/business.md), and [launch checklist](docs/launch-checklist.md).
 

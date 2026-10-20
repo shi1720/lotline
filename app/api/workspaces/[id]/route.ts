@@ -6,6 +6,8 @@ import {
   route,
   ApiError,
   publicWorkspace,
+  MAX_STORAGE_BYTES,
+  USER_STORAGE_BYTES_SQL,
   ownedWorkspace,
   verifyMutation,
   type WorkspaceRow,
@@ -26,24 +28,29 @@ export const PUT = route(async (request: Request, context: IdContext) => {
     { id } = await context.params,
     db = database();
   const current = await ownedWorkspace(db, id, userId);
+  const serializedDataset = JSON.stringify(input.dataset);
   const row = await db
     .prepare(
-      "UPDATE workspaces SET name = ?, dataset = ?, revision = revision + 1, updated_at = ? WHERE id = ? AND user_id = ? AND revision = ? RETURNING *",
+      `UPDATE workspaces SET name = ?, dataset = ?, revision = revision + 1, updated_at = ? WHERE id = ? AND user_id = ? AND revision = ? AND ${USER_STORAGE_BYTES_SQL} - length(CAST(workspaces.dataset AS BLOB)) + length(CAST(? AS BLOB)) <= ? RETURNING *`,
     )
     .bind(
       input.name?.trim() ?? current.name,
-      JSON.stringify(input.dataset),
+      serializedDataset,
       new Date().toISOString(),
       id,
       userId,
       input.revision,
+      userId,
+      userId,
+      serializedDataset,
+      MAX_STORAGE_BYTES,
     )
     .first<WorkspaceRow>();
-  if (!row)
-    throw new ApiError(
-      409,
-      "This workspace changed in another session. Reload it before saving to avoid overwriting newer records.",
-    );
+  if (!row) {
+    const latest = await ownedWorkspace(db, id, userId);
+    if (latest.revision !== input.revision) throw new ApiError(409, "This workspace changed in another session. Reload it before saving to avoid overwriting newer records.");
+    throw new ApiError(409, "Account storage limit (25 MiB) reached. Delete a workspace to free storage, or reduce these records before saving.");
+  }
   return json({ workspace: publicWorkspace(row) });
 });
 export const DELETE = route(async (request: Request, context: IdContext) => {

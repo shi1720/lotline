@@ -43,9 +43,12 @@ Use **25 October 2026, 11:59 PM Eastern**, or **26 October, 9:29 AM India Standa
 - [ ] Optional AI endpoint has authentication, input limits, timeout/error fallback and no exposed secret. Verify it sends only the intended fields.
 - [x] Inspect 390 × 844 responsive layout and mobile navigation.
 - [ ] Complete broader keyboard-navigation and contrast review.
-- [x] Record 22 engine/import +13 API +2 Worker tests, passing type/build checks and known limits in verification.md.
+- [x] Record 24 engine/import +15 API +2 Worker tests, passing type/build checks and known limits in verification.md.
 - [x] Production receiving-CSV import in Replace mode and saved snapshot JSON download inspected, including dataset and result.
-- [x] Correction flow preserves original assignment and requires a nonempty note before confirming.
+- [x] Correction flow preserves original assignment and requires a nonempty note before confirming; imported CSV sourceData retains mapped/unmapped cells separately.
+- [x] Test aggregate 25 MiB per-user saved payload quota, including multibyte records, tenant separation, shrinking/equal-size updates and deletion freeing bytes.
+- [x] Add public privacy notice describing data handling and hosting limitations.
+- [ ] Confirm final deployment contains these last source changes; review dependency caveat in SECURITY.md.
 - [ ] Publish final source fixes and repeat production smoke checks; the first verified deployment corresponds to 0a95369.
 - [ ] Add and run remote CI; local passing checks are not a CI run.
 

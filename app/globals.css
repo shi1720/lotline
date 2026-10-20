@@ -2569,3 +2569,46 @@ tbody tr:last-child td {
 .badge.green {
   color: #5d7d44;
 }
+.policy-page {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 45px 30px 80px;
+}
+.policy-page .brand {
+  padding: 0;
+  margin-bottom: 60px;
+}
+.policy-page h1 {
+  margin: 15px 0 28px;
+}
+.policy-page h2 {
+  font-size: 22px;
+  margin: 32px 0 12px;
+}
+.policy-page p {
+  font-size: 14px;
+  line-height: 1.9;
+  color: #6b7c61;
+}
+.policy-page p a {
+  text-decoration: underline;
+}
+.policy-page .btn {
+  margin-top: 35px;
+}
+.raw-source {
+  margin-top: 24px;
+  border-top: 1px solid #dce5d0;
+  padding-top: 18px;
+}
+.raw-source h3 {
+  font-size: 13px;
+}
+.raw-source p {
+  font-size: 10px;
+  margin-top: 6px;
+  color: #7d916b;
+}
+.raw-source dd {
+  white-space: pre-wrap;
+}

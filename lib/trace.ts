@@ -9,6 +9,7 @@ export interface Receipt {
   unit: string;
   source: string;
   row: number;
+  sourceData?: Record<string, string>;
 }
 export interface Production {
   id: string;
@@ -23,6 +24,7 @@ export interface Production {
   outputUnit: string;
   source: string;
   row: number;
+  sourceData?: Record<string, string>;
 }
 export interface Shipment {
   id: string;
@@ -35,6 +37,7 @@ export interface Shipment {
   unit: string;
   source: string;
   row: number;
+  sourceData?: Record<string, string>;
   originalBatch?: string;
   correctionNote?: string;
   correctedAt?: string;
@@ -139,7 +142,7 @@ export function analyze(dataset: Dataset, requestedLot: string): TraceResult {
       const semantic = JSON.stringify(
         Object.fromEntries(
           Object.entries(r)
-            .filter(([k]) => !["id", "row", "source"].includes(k))
+            .filter(([k]) => !["id", "row", "source", "sourceData"].includes(k))
             .sort(),
         ),
       );
@@ -459,6 +462,6 @@ export function analyze(dataset: Dataset, requestedLot: string): TraceResult {
     inputQuantityComplete,
     outputQuantityComplete,
     quantitativeComplete: inputQuantityComplete && outputQuantityComplete,
-    ready: !issues.some((i) => i.severity === "critical"),
+    ready: receipts.length > 0 && batches.length > 0 && !issues.some((i) => i.severity === "critical"),
   };
 }

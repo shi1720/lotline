@@ -6,7 +6,7 @@ Open **Trace workspace**. Cedar & Crumb is fictional, and the page labels the sa
 
 The confirmed record trail connects Northfield Ingredients' 100 kg receipt to CR-201 and CR-202, two Sesame Crunch batches. Their recorded inputs total 90 kg; recorded output is 900 cases. Confirmed shipments total 650 cases to Cedar Market, Harbour Foods and Maple Co-op. The calculated finished balance is 250 cases. The missing-batch 40-case shipment is a separate unresolved question, not an adjustment silently applied to those totals.
 
-Click a supplier, production or customer card to open the evidence dialog. It shows source filenames, row numbers and imported values. Close it to return to the trace. Use **Source records** to inspect receiving, production and shipment tables and download the three sample CSVs.
+Click a supplier, production or customer card to open the evidence dialog. It shows source filenames and row numbers, with Original CSV row displayed separately from normalized/current fields and any reviewed correction. CSV imports preserve mapped and unmapped cells, including whitespace and multiline content; line endings are normalized to LF. Close it to return to the trace. Use **Source records** to inspect receiving, production and shipment tables and download the three sample CSVs.
 
 ## Import your own structured records
 
@@ -22,7 +22,7 @@ Begin with de-identified test copies. Lotline has not been reviewed for real cus
 
 Use real ISO dates such as `2026-10-15`, finite positive numbers, and consistent units. Give suppliers' lots and finished batches distinct workspace-wide identifiers; normalize collisions before importing. Preserve missing values as missing instead of inventing identifiers.
 
-The dataset limit is 5,000 total records, with a separate 1 MiB server JSON limit. File size or request size may constrain usable rows sooner. Error handling protects record integrity but does not determine whether your input is complete.
+The dataset limit is 5,000 total records, with a separate 1 MiB server JSON limit. File size or request size may constrain usable rows sooner. Saved workspace/snapshot payloads also share a 25 MiB per-account UTF-8 storage cap. At quota, shrinking or equal-size dataset updates and deletion remain available; a clear 409 error prevents writes that would exceed the limit. Error handling protects record integrity but does not determine whether your input is complete.
 
 ## Review a missing shipment assignment
 
@@ -63,3 +63,5 @@ Review the print preview before sharing. Keep drill/synthetic labels and unresol
 This version supports one ingredient-to-finished-batch transformation layer. Stock balance means output less recorded shipments. It excludes unrecorded waste, returns, transfers and rework. An empty or clean result does not prove absence of exposure. Lotline does not decide whether food is safe, whether recall is necessary or whether legal obligations are met.
 
 Consult your qualified food-safety team and actual incident procedures for real events. Read the official [CFIA guidance](https://inspection.canada.ca/en/food-safety-industry/toolkit-food-businesses/traceability) for context; applicability varies by operation.
+
+Read the public [privacy notice](https://lotline-recall.sg127977958.chatgpt.site/privacy) for retention, deletion, temporary drafts, fonts and hosting limitations. No guaranteed storage region or backup deletion promise is implied.

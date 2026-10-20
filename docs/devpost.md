@@ -14,7 +14,7 @@ Lotline connects receiving, production and shipment CSVs into a lot-level trace.
 
 The demo follows **Cedar & Crumb**, a fictional granola maker investigating sesame lot **SES-104**. Two batches use 90 kg of the 100 kg received and produce 900 cases. Records connect 650 shipped cases to three customers and leave a calculated 250-case balance. A separate 40-case shipment has no batch assignment and remains in review scope. The complete fixture contains two receipts, three production records and five shipments. All companies, customers and quantities are synthetic: this is a rehearsal, not a real recall.
 
-The central design choice is to keep uncertainty visible. A missing lot code becomes a review item. A plausible association is not silently promoted into a confirmed connection. Source evidence sits beside the result so a human can assess it.
+Imported CSVs retain all source columns, including unmapped values; the evidence dialog distinguishes the Original CSV row from normalized/current values and reviewed corrections. The central design choice is to keep uncertainty visible. A missing lot code becomes a review item. A plausible association is not silently promoted into a confirmed connection. Source evidence sits beside the result so a human can assess it.
 
 ## How it is built
 
@@ -26,13 +26,15 @@ The project targets **Best Overall**. We are not claiming Expo, Clerk, Eon or Su
 
 ## What we tested
 
-Twenty-two engine/import tests, thirteen API tests and two Worker integration tests pass: thirty-seven in total. TypeScript checking and the production build also pass. They cover the sample arithmetic, missing/unknown associations, malformed CSV, incompatible units, schema validation, ownership isolation, origin checks, request limits, stale-write conflicts, immutable snapshots, quotas and mocked AI output validation. API tests exercise the actual handlers against SQLite with injected platform identity and D1 bindings. Separate production browser checks verified ChatGPT sign-in, D1 workspace save/reopen, a drill snapshot with multiline notes, snapshot JSON download, receiving-CSV import and a 390 × 844 mobile layout. Production probes confirmed the root response and rejected anonymous requests carrying forged identity headers. Two genuine-account browser isolation has not been tested; production data residency and live model access are not claimed.
+Twenty-four engine/import tests, fifteen API tests and two Worker integration tests pass: forty-one in total. TypeScript checking and the production build also pass. They cover the sample arithmetic, missing/unknown associations, malformed CSV, incompatible units, schema validation, ownership isolation, origin checks, request limits, stale-write conflicts, immutable snapshots, quotas and mocked AI output validation. API tests exercise the actual handlers against SQLite with injected platform identity and D1 bindings. Separate production browser checks verified ChatGPT sign-in, D1 workspace save/reopen, a drill snapshot with multiline notes, snapshot JSON download, receiving-CSV import and a 390 × 844 mobile layout. Production probes confirmed the root response and rejected anonymous requests carrying forged identity headers. Two genuine-account browser isolation has not been tested; production data residency and live model access are not claimed.
 
 ## Why this approach
 
 Existing platforms such as Katana and FoodDocs already support traceability. Lotline explores a narrower adoption path: begin with the files a small maker already has, make the trace inspectable, and show the gaps that prevent a complete answer. We have not established that these competitors lack equivalent import or review capabilities. [Katana documentation](https://support.katanamrp.com/en/articles/14737323-how-to-use-the-traceability-explorer), [FoodDocs](https://www.fooddocs.com/pricing)
 
 ## Responsible operation
+
+Saved workspace and snapshot payloads share a tested 25 MiB per-user storage quota, enforced atomically with row/request/account limits. A public privacy notice describes retention, deletion and remaining hosting limitations.
 
 Lotline helps prepare and inspect records. It does not determine whether food is safe, whether a recall is necessary, or whether an operator meets legal requirements. A qualified person must make operational decisions. Demonstration exports should remain visibly labeled as synthetic/drill material.
 

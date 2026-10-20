@@ -22,9 +22,17 @@ Keep provider keys in server-side hosting secrets. Never use public browser envi
 
 ## Verification and remaining limits
 
-The passing suite has 22 engine/import tests, 13 API tests and 2 Worker integration tests, plus passing TypeScript/build checks. Production browser verification exercised sign-in, D1 saves/reopen and drill JSON export. Production HTTP probes returned 401 for anonymous workspace requests even with forged oai identity headers. Tenant separation is tested with injected identities; two genuine-account browser isolation has not been performed. No penetration test or independent audit is claimed. See docs/verification.md.
+The passing suite has 24 engine/import tests, 15 API tests and 2 Worker integration tests, plus passing TypeScript/build checks. Production browser verification exercised sign-in, D1 saves/reopen and drill JSON export. Production HTTP probes returned 401 for anonymous workspace requests even with forged oai identity headers. Tenant separation is tested with injected identities; two genuine-account browser isolation has not been performed. No penetration test or independent audit is claimed. See docs/verification.md.
 
 Hosting region, regulatory data-location suitability, encryption/key-management commitments, retention schedules, backup deletion, disaster recovery, operational monitoring and contractual privacy terms have not been independently established. UI deletion removes workspace data and related drill/activity rows through database relationships; it does not establish deletion from hosting backups. This version has no team membership, granular staff roles or external account-provisioning integration.
+
+## Dependency advisory status
+
+On 20 October 2026, the locked dependency graph's production-only audit reports zero advisories, while the complete audit reports **eight high-severity entries and zero critical entries**. Those eight entries propagate one unresolved [braces stack-exhaustion advisory](https://github.com/advisories/GHSA-vfj7-8cjw-p6xm) through `micromatch` / `fast-glob`, Next's ESLint tooling and Vinext's CommonJS/dynamic-import build plugins. The installed `braces` version is 3.0.3; the advisory lists no patched version. Suggested major framework/tooling downgrades have not been applied as a substitute for a compatible fix.
+
+The observed import paths are lint/build tooling, and application request handlers do not evaluate uploaded records as glob patterns. This is a reachability assessment, not proof that every emitted artifact is unaffected. Build only reviewed source and configuration, keep development servers on loopback, isolate build jobs from production secrets, and serve the compiled Worker rather than a public development server. Track the upstream fix and repeat the complete audit when dependencies change.
+
+A `devDependency` label alone does not establish runtime safety: React Server Components are included in the served application. React, React DOM and `react-server-dom-webpack` are pinned to 19.2.8. Rebuild and verify the deployed artifact after lockfile changes. A production-only clean audit must not be described as a clean complete audit or a vulnerability-free service.
 
 ## Reporting a vulnerability
 

@@ -1240,7 +1240,8 @@ export default function Lotline({
                               className="source-pill"
                               onClick={() =>
                                 setEvidence({
-                                  title: "Original source record",
+                                  title:
+                                    "Imported source record and current values",
                                   records: [r],
                                 })
                               }
@@ -1490,7 +1491,10 @@ export default function Lotline({
           <footer className="page-footer">
             <span>
               <span className="footer-logo">lotline.</span> Every lot. Every
-              link.
+              link.{" "}
+              <a href="/privacy" target="_blank" rel="noreferrer">
+                Privacy
+              </a>
             </span>
             <span>
               Evidence, not assumptions.{" "}
@@ -1539,7 +1543,10 @@ export default function Lotline({
                 </span>
                 <dl>
                   {Object.entries(r)
-                    .filter(([k]) => !["source", "row", "id"].includes(k))
+                    .filter(
+                      ([k]) =>
+                        !["source", "row", "id", "sourceData"].includes(k),
+                    )
                     .map(([k, v]) => (
                       <div key={k}>
                         <dt>{label(k)}</dt>
@@ -1553,6 +1560,23 @@ export default function Lotline({
                       </div>
                     ))}
                 </dl>
+                {r.sourceData && (
+                  <div className="raw-source">
+                    <h3>Original CSV row</h3>
+                    <p>
+                      All columns retained as imported, including unmapped
+                      fields.
+                    </p>
+                    <dl>
+                      {Object.entries(r.sourceData).map(([key, value]) => (
+                        <div key={key}>
+                          <dt>{key}</dt>
+                          <dd>{String(value) || "(blank)"}</dd>
+                        </div>
+                      ))}
+                    </dl>
+                  </div>
+                )}
               </div>
             ))}
             {!evidence.records.length && (

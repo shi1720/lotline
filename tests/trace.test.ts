@@ -31,6 +31,7 @@ test("complete supplied records can be ready without implying safety", () => {
   const r = analyze(d, "SES-104");
   assert.equal(r.ready, true);
   assert.match(r.issues.at(-1)!.detail, /only uploaded records/);
+  assert.equal(analyze({ ...d, production: [], shipments: [] }, "SES-104").ready, false);
 });
 test("investigates unknown batch and product but excludes unrelated products", () => {
   const d = data();
@@ -282,3 +283,5 @@ test("CSV row provenance remains compatible when rowNumbers is omitted", () => {
   );
   assert.equal(result.records[0].row, 2);
 });
+test('imports preserve complete untrimmed source evidence including unmapped address and multiline notes',()=>{const parsed=parseCSV('ingredient,lot,supplier,receivedDate,quantity,unit,address,note\nSesame,X,S,2026-10-01,10,kg,"  100 Main St  ","first line\nsecond line"');const result=importRows('receipts',parsed.headers,parsed.rows,defaultMapping('receipts',parsed.headers),'evidence.csv',parsed.rowNumbers);assert.equal(result.errors.length,0);assert.equal(result.records[0].sourceData?.address,'  100 Main St  ');assert.equal(result.records[0].sourceData?.note,'first line\nsecond line');assert.equal(result.records[0].sourceData?.quantity,'10');assert.equal(result.records[0].quantity,10);});
+test('extra raw source evidence cannot conceal semantic duplicate business records',()=>{const d=data();d.receipts[0].sourceData={note:'first raw note'};d.receipts.push({...d.receipts[0],id:'raw-duplicate',source:'another.csv',row:20,sourceData:{note:'different raw note',address:'new evidence'}});const r=analyze(d,'SES-104');assert.equal(r.inputQuantity,100);assert.equal(r.receipts.length,1);assert.ok(r.issues.some(i=>i.title==='Duplicate record'));assert.equal(r.inputQuantityComplete,false);});

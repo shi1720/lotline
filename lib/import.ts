@@ -172,10 +172,11 @@ export function importRows<K extends ImportKind>(
   rows.forEach((row, i) => {
     const rowNumber = rowNumbers?.[i] ?? i + 2,
       before = errors.length;
-    const result: Record<string, string | number> = {
+    const result: Record<string, string | number | Record<string, string>> = {
       id: `${kind}:${source}:${rowNumber}`,
       source,
       row: rowNumber,
+      sourceData: Object.fromEntries(headers.map((header, index) => [header, (row[index] ?? "").replace(/\r\n?/g, "\n")])),
     };
     if (row.length !== headers.length) {
       errors.push({
