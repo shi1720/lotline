@@ -35,7 +35,7 @@ npm run build
 
 For local interactive work, run `npm run dev:api` in one terminal and `npm run dev` in another. The frontend runs at `http://localhost:5174` and proxies API requests to port 8080. Set the intended Google Cloud project and use Application Default Credentials for the API.
 
-To reproduce deployment to the configured project, run `npm run deploy:firebase`. The script validates the checked-in public Firebase configuration, runs checks and builds, deploys the Cloud Run API, then deploys Firebase Hosting and rules for the named database. It requires authenticated Google Cloud/Firebase tools and appropriate project permissions.
+To reproduce deployment to the configured project, run `npm run deploy:firebase`. The script validates the checked-in public Firebase configuration, runs checks and builds, deploys the Cloud Run API, then deploys Firebase Hosting and rules for the named database. It requires an authenticated Google Cloud identity, Firebase tooling and appropriate project permissions. Firebase deployment uses a fresh short-lived credential in process memory and an explicit quota project. Use `npm run deploy:firebase -- --hosting-only` for frontend or header updates that do not change the API or database rules.
 
 The frontend uses Vite with `vite.firebase.config.ts`; the Express API entry point is `server/index.ts`. Local API execution requires a Firebase project configuration and Application Default Credentials with access to its named `lotline` Firestore database. Do not commit service-account keys or production credentials. The public Firebase web configuration identifies the project and is not an administrator credential.
 
@@ -77,4 +77,3 @@ Before real operational use, validate the workflow with a food-safety practition
 ## License and attribution
 
 Lotline-authored code is MIT licensed, copyright 2026 Shivam Gupta. Retain third-party notices, including `build/sites-vite-plugin.LICENSE` and `vendor/shadcn-tailwind-4.13.0.LICENSE.md`. Dependencies retain their own licenses. The MIT license does not replace those notices.
-

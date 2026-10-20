@@ -58,7 +58,7 @@ The final browser walkthrough exercised the Firebase application with real inter
 | Workflow | Observed result |
 |---|---|
 | Guest sample | Expected two batches, three customers, 650 confirmed shipped cases, 250-case calculated balance and separate forty-case unresolved shipment |
-| Authentication | Email/password sign-in completed; sign-out completed |
+| Authentication | Email/password sign-in and sign-out completed. A fresh account was also created through the final hosted signup form and saved a private workspace successfully. |
 | Private picker and loading | Saved private workspace was selected and loaded |
 | Source import | Receiving CSV imported using Replace; original evidence remained inspectable |
 | Save | Revised workspace saved |
@@ -99,3 +99,7 @@ Backup recovery, provider log/backup retention, account deletion policy, operati
 The narrated product demonstration is public at https://www.youtube.com/watch?v=fXdZMhOwFtw. YouTube confirmed publication, copyright and Community Guidelines checks reported no issues, and a separate unauthenticated oEmbed API request returned HTTP 200 with the expected title and embeddable iframe. Browser playback progressed without a media error, full-HD 1920 by 1080 playback was selected and observed, and the uploaded English subtitle track was selectable. The 95.6-second source video contains burned captions as well as the separate SRT track.
 
 Devpost project overview, story, technical stack, live/repository links, cover, four captioned screenshots and public video URL were saved in the existing draft. Creator credit is Shivam Gupta. The entry remains a draft until its creator accepts the final rules agreement and presses Submit project. Preparing fields is distinct from final prize-entry submission.
+
+## Release freshness and deployment credentials
+
+Final HTTP checks verified `no-cache` for the homepage, privacy route with and without a trailing slash, index HTML and public Firebase configuration. Content-hashed assets retain a one-year immutable cache policy, and the API retains `no-store,private`. This avoids serving an old HTML entry point after deployment. The deployment script's hosting-only path was executed successfully with the active gcloud identity, a fresh short-lived credential held in child-process memory and an explicit quota project. No service-account private key or shared global login configuration was changed.

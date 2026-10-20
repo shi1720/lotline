@@ -11,24 +11,36 @@ const service = "lotline-api";
 const runtimeIdentity = `lotline-runtime@${project}.iam.gserviceaccount.com`;
 const origin = `https://${site}.web.app`;
 function firebase(args) {
+  const env = { ...process.env, GOOGLE_CLOUD_QUOTA_PROJECT: project };
+  if (!args.includes("--version")) {
+    // Keep the active gcloud user's short-lived credential in child-process memory.
+    // The pinned CLI accepts this token without mutating its cached login or writing a key.
+    const credential = spawnSync("gcloud", ["auth", "print-access-token"], {
+      cwd, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"],
+    });
+    if (credential.status !== 0 || !credential.stdout?.trim())
+      throw new Error("A valid gcloud login is required for Firebase deployment.");
+    env.FIREBASE_TOKEN = credential.stdout.trim();
+  }
+
   const explicit = process.env.FIREBASE_CLI_PATH;
   if (explicit)
     return explicit.endsWith(".js")
-      ? run(process.execPath, [explicit, ...args])
-      : run(explicit, args);
+      ? run(process.execPath, [explicit, ...args], { env })
+      : run(explicit, args, { env });
   const global = spawnSync("firebase", ["--version"], {
     cwd,
     encoding: "utf8",
   });
-  if (!global.error && global.status === 0) return run("firebase", args);
+  if (!global.error && global.status === 0) return run("firebase", args, { env });
   const local = fileURLToPath(
     new URL(
       "../../../work/firebase-cli/node_modules/firebase-tools/lib/bin/firebase.js",
       import.meta.url,
     ),
   );
-  if (existsSync(local)) return run(process.execPath, [local, ...args]);
-  return run("npx", ["--yes", "firebase-tools@15.34.0", ...args]);
+  if (existsSync(local)) return run(process.execPath, [local, ...args], { env });
+  return run("npx", ["--yes", "firebase-tools@15.34.0", ...args], { env });
 }
 function run(command, args, options = {}) {
   const result = spawnSync(command, args, {
@@ -73,9 +85,11 @@ run("gcloud", [
 ]);
 firebase(["--version"]);
 run("npm", ["run", "typecheck"]);
+run("npm", ["run", "lint"]);
 run("npm", ["test"]);
 run("npm", ["run", "build"]);
-run("gcloud", [
+const hostingOnly = process.argv.includes("--hosting-only");
+if (!hostingOnly) run("gcloud", [
   "run",
   "deploy",
   service,
@@ -112,7 +126,7 @@ firebase([
   "--project",
   project,
   "--only",
-  "hosting,firestore:rules",
+  hostingOnly ? "hosting" : "hosting,firestore:rules",
   "--non-interactive",
 ]);
 const response = await fetch(`${origin}/api/health`, {
