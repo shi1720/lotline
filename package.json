@@ -7,13 +7,21 @@
   },
   "scripts": {
     "install:ci": "node scripts/install-ci.mjs",
-    "dev": "node scripts/run-framework.mjs dev",
-    "build": "node scripts/run-framework.mjs build",
-    "start": "node --import ./scripts/sites-env.mjs ./node_modules/wrangler/bin/wrangler.js dev --config dist/server/wrangler.json --local --persist-to .wrangler/state --ip 127.0.0.1 --inspector-port 0",
-    "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
+    "dev": "vite --config vite.firebase.config.ts",
+    "build": "npm run build:client && npm run build:server",
+    "start": "node dist/server/index.js",
+    "lint": "eslint client server lib/trace.ts lib/import.ts lib/demo.ts lib/firebase-client.ts lib/server-validation.ts app/lotline.tsx app/privacy/page.tsx vite.firebase.config.ts scripts/deploy-firebase.mjs",
     "db:generate": "drizzle-kit generate",
-    "test": "node --experimental-strip-types --test tests/trace.test.ts && node --test tests/api.test.mjs tests/api-worker.test.mjs",
-    "typecheck": "tsc --noEmit"
+    "test": "node --experimental-strip-types --test tests/trace.test.ts && node --test tests/api.test.mjs tests/api-worker.test.mjs tests/firebase-api.test.mjs",
+    "typecheck": "tsc --noEmit",
+    "dev:sites": "node scripts/run-framework.mjs dev",
+    "build:sites": "node scripts/run-framework.mjs build",
+    "start:sites": "node --import ./scripts/sites-env.mjs ./node_modules/wrangler/bin/wrangler.js dev --config dist/server/wrangler.json --local --persist-to .wrangler/state --ip 127.0.0.1 --inspector-port 0",
+    "build:client": "vite build --config vite.firebase.config.ts",
+    "build:server": "esbuild server/index.ts --bundle --platform=node --target=node22 --format=esm --packages=external --outfile=dist/server/index.js",
+    "dev:api": "npm run build:server && node dist/server/index.js",
+    "deploy:firebase": "node scripts/deploy-firebase.mjs",
+    "lint:legacy": "eslint . --ignore-pattern dist --ignore-pattern .next"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",
@@ -25,6 +33,9 @@
     "date-fns": "^4.4.0",
     "drizzle-orm": "0.45.2",
     "embla-carousel-react": "^8.6.0",
+    "express": "^5.3.0",
+    "firebase": "12.19.0",
+    "firebase-admin": "^14.5.0",
     "input-otp": "^1.4.2",
     "lucide-react": "^1.31.0",
     "next": "16.4.2",
@@ -45,6 +56,7 @@
     "@cloudflare/vite-plugin": "1.37.1",
     "@cloudflare/workers-types": "4.20260515.1",
     "@tailwindcss/postcss": "4.2.1",
+    "@types/express": "^5.0.6",
     "@types/node": "22.19.19",
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
@@ -72,6 +84,7 @@
     "image-size": "2.0.3",
     "undici": "7.30.0",
     "ws": "8.22.0",
-    "esbuild": "0.28.2"
+    "esbuild": "0.28.2",
+    "@grpc/grpc-js": "1.14.6"
   }
 }

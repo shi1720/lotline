@@ -1,4 +1,5 @@
 "use client";
+/* eslint-disable @next/next/no-html-link-for-pages -- This shared view is rendered by the standalone Firebase client. */
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowDownToLine,
@@ -14,15 +15,16 @@ import {
   FileCheck2,
   FileSpreadsheet,
   FileText,
+  Eye,
+  EyeOff,
+  Pencil,
   FlaskConical,
   GitBranch,
-  LayoutDashboard,
   Leaf,
   Link2,
   Loader2,
   LogOut,
   Menu,
-  MoreHorizontal,
   Plus,
   Search,
   Settings2,
@@ -43,6 +45,13 @@ import {
 import { demoDataset, demoLot } from "@/lib/demo";
 import { parseCSV, importRows, fieldsByKind } from "@/lib/import";
 import { datasetSchema } from "@/lib/server-validation";
+import {
+  getToken,
+  signIn,
+  signUp,
+  resetPassword,
+  signOut,
+} from "@/lib/firebase-client";
 type Kind = "receipts" | "production" | "shipments";
 type Workspace = {
   id: string;
@@ -56,6 +65,24 @@ type Drill = {
   createdAt: string;
   notes?: string;
   result?: unknown;
+};
+type SourceRecord = Receipt | Production | Shipment;
+type RecordDraft = Partial<Receipt & Production & Shipment> &
+  Pick<Receipt, "id" | "source" | "row">;
+type WorkspaceEvent = {
+  id: string;
+  action: string;
+  detail: string;
+  createdAt: string;
+};
+type WorkspaceResponse = { workspace: Workspace };
+type WorkspaceListResponse = { workspaces: Workspace[] };
+type DrillListResponse = { drills: Drill[] };
+type EventListResponse = { events: WorkspaceEvent[] };
+type MappingResponse = {
+  mapping: Record<string, string>;
+  explanation?: string;
+  mode: string;
 };
 const empty: Dataset = { receipts: [], production: [], shipments: [] };
 const label = (s: string) =>
@@ -78,26 +105,74 @@ function csvValue(v: unknown) {
 function csv(rows: unknown[][]) {
   return rows.map((r) => r.map(csvValue).join(",")).join("\r\n");
 }
-async function api(url: string, method = "GET", body?: unknown) {
+async function api<T = Record<string, unknown>>(
+  url: string,
+  method = "GET",
+  body?: unknown,
+): Promise<T> {
+  const token = await getToken();
   const response = await fetch(url, {
     method,
-    headers: body ? { "Content-Type": "application/json" } : undefined,
+    headers: {
+      ...(body ? { "Content-Type": "application/json" } : {}),
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
     body: body ? JSON.stringify(body) : undefined,
   });
-  const data: any = await response.json();
-  if (!response.ok)
+  const raw: unknown = await response.json().catch(() => null);
+  if (!raw || typeof raw !== "object" || Array.isArray(raw))
+    throw new Error(
+      "The server returned an unreadable response. Please try again.",
+    );
+  const data = raw as Record<string, unknown>;
+  if (!response.ok) {
+    const issues = data.issues ?? data.details;
+    const detail = Array.isArray(issues)
+      ? issues
+          .map((issue: unknown) => {
+            if (!issue || typeof issue !== "object")
+              return "Record: Invalid value";
+            const entry = issue as { path?: unknown; message?: unknown };
+            const path = Array.isArray(entry.path)
+              ? entry.path.map(String).join(".")
+              : typeof entry.path === "string"
+                ? entry.path
+                : "Record";
+            return `${path || "Record"}: ${typeof entry.message === "string" ? entry.message : "Invalid value"}`;
+          })
+          .join("; ")
+      : "";
     throw new Error(
       typeof data.error === "string"
-        ? data.error
-        : "Could not complete request. Please try again.",
+        ? data.error + (detail ? ". " + detail : "")
+        : "Could not complete request. Please check your connection and try again.",
     );
-  return data;
+  }
+  return data as T;
 }
 export default function Lotline({
   user,
 }: {
-  user: { name: string; email: string } | null;
+  user: { name: string; email: string; uid?: string } | null;
 }) {
+  const [authMode, setAuthMode] = useState<"signin" | "signup" | "reset">(
+    "signin",
+  );
+  const [authEmail, setAuthEmail] = useState("");
+  const [authPassword, setAuthPassword] = useState("");
+  const [authName, setAuthName] = useState("");
+  const [authError, setAuthError] = useState("");
+  const [authNotice, setAuthNotice] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const operationLock = useRef(false);
+  const accountId = useRef<string | null>(null);
+  const [editRecord, setEditRecord] = useState<{
+    kind: Kind;
+    record: RecordDraft;
+    note: string;
+    error: string;
+  } | null>(null);
+  const [revisionNotes, setRevisionNotes] = useState<string[]>([]);
   const [isSample, setIsSample] = useState(true),
     [correction, setCorrection] = useState<{
       id: string;
@@ -117,11 +192,11 @@ export default function Lotline({
     [message, setMessage] = useState(""),
     [evidence, setEvidence] = useState<{
       title: string;
-      records: unknown[];
+      records: SourceRecord[];
     } | null>(null),
     [drills, setDrills] = useState<Drill[]>([]),
     [notes, setNotes] = useState(""),
-    [events, setEvents] = useState<any[]>([]),
+    [events, setEvents] = useState<WorkspaceEvent[]>([]),
     [dirty, setDirty] = useState(false),
     [mobile, setMobile] = useState(false);
   const [fileData, setFileData] = useState<{
@@ -135,8 +210,17 @@ export default function Lotline({
     [importErrors, setImportErrors] = useState<string[]>([]),
     [importMode, setImportMode] = useState<"append" | "replace">("append");
   const fileRef = useRef<HTMLInputElement>(null);
+  const hasModal = modal !== null;
+  const hasEvidence = evidence !== null;
+  const hasCorrection = correction !== null;
+  const hasEditRecord = editRecord !== null;
+  const currentAccountId = user?.uid ?? user?.email ?? null;
+  const liveDraft = useRef({ dataset, name, revisionNotes });
   useEffect(() => {
-    if (!modal && !evidence && !correction) return;
+    liveDraft.current = { dataset, name, revisionNotes };
+  }, [dataset, name, revisionNotes]);
+  useEffect(() => {
+    if (!hasModal && !hasEvidence && !hasCorrection && !hasEditRecord) return;
     const prior = document.activeElement as HTMLElement | null;
     const dialog = Array.from(
       document.querySelectorAll<HTMLElement>("[role=dialog]"),
@@ -153,6 +237,7 @@ export default function Lotline({
         setModal(null);
         setEvidence(null);
         setCorrection(null);
+        setEditRecord(null);
       }
       if (e.key === "Tab") {
         const items = focusable();
@@ -172,9 +257,72 @@ export default function Lotline({
       document.removeEventListener("keydown", key);
       prior?.focus();
     };
-  }, [modal, evidence, Boolean(correction)]);
-  const [reportTime, setReportTime] = useState("");
-  useEffect(() => setReportTime(new Date().toISOString()), []);
+  }, [modal, hasModal, hasEvidence, hasCorrection, hasEditRecord, busy]);
+  useEffect(() => {
+    if (
+      !hasModal &&
+      !hasEvidence &&
+      !hasCorrection &&
+      !hasEditRecord &&
+      !mobile
+    )
+      return;
+    const prior = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prior;
+    };
+  }, [hasModal, hasEvidence, hasCorrection, hasEditRecord, mobile]);
+  useEffect(() => {
+    if (!mobile) return;
+    const trigger = document.activeElement as HTMLElement | null;
+    const drawer = document.getElementById("workspace-navigation");
+    const focusable = () =>
+      Array.from(
+        drawer?.querySelectorAll<HTMLElement>(
+          'a[href],button:not([disabled]),[tabindex="0"]',
+        ) ?? [],
+      ).filter((element) => element.getClientRects().length > 0);
+    focusable()[0]?.focus();
+    const keydown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        setMobile(false);
+      }
+      if (event.key === "Tab") {
+        const items = focusable();
+        const first = items[0],
+          last = items.at(-1);
+        if (
+          event.shiftKey &&
+          (document.activeElement === first ||
+            !drawer?.contains(document.activeElement))
+        ) {
+          event.preventDefault();
+          last?.focus();
+        } else if (
+          !event.shiftKey &&
+          (document.activeElement === last ||
+            !drawer?.contains(document.activeElement))
+        ) {
+          event.preventDefault();
+          first?.focus();
+        }
+      }
+    };
+    const desktop = window.matchMedia("(min-width: 621px)");
+    const resize = () => {
+      if (desktop.matches) setMobile(false);
+    };
+    document.addEventListener("keydown", keydown);
+    desktop.addEventListener("change", resize);
+    return () => {
+      document.removeEventListener("keydown", keydown);
+      desktop.removeEventListener("change", resize);
+      trigger?.focus();
+    };
+  }, [mobile]);
+  const [reportTime, setReportTime] = useState(() => new Date().toISOString());
   const result = useMemo(() => analyze(dataset, lot), [dataset, lot]);
   const findings = result.issues.filter((issue) => issue.severity !== "info");
   const lots = useMemo(
@@ -201,6 +349,7 @@ export default function Lotline({
     const id = setTimeout(() => setMessage(""), 7000);
     return () => clearTimeout(id);
   }, [message]);
+  /* eslint-disable react-hooks/set-state-in-effect -- Restore the externally stored browser draft once on mount. */
   useEffect(() => {
     try {
       const pending = sessionStorage.getItem("lotline-signin-draft");
@@ -225,12 +374,54 @@ export default function Lotline({
       );
     }
   }, []);
+  // An external authentication change must clear every private view immediately.
   useEffect(() => {
-    if (user)
-      api("/api/workspaces")
-        .then((d) => setWorkspaces(d.workspaces ?? []))
-        .catch((e) => notify(e.message));
-  }, [user]);
+    const id = currentAccountId;
+    if (accountId.current && accountId.current !== id) {
+      setActive(null);
+      setWorkspaces([]);
+      setDrills([]);
+      setEvents([]);
+      setDataset(demoDataset);
+      setLot(demoLot);
+      setName("Cedar & Crumb");
+      setIsSample(true);
+      setDirty(false);
+      setRevisionNotes([]);
+      setModal(null);
+      setEvidence(null);
+      setCorrection(null);
+      setEditRecord(null);
+      setFileData(null);
+      setMapping({});
+      setImportErrors([]);
+      setQuery("");
+      setNotes("");
+      setAuthPassword("");
+    }
+    accountId.current = id;
+    if (!id) {
+      setWorkspaces([]);
+      return;
+    }
+    let cancelled = false;
+    api<WorkspaceListResponse>("/api/workspaces")
+      .then((d) => {
+        if (!cancelled) setWorkspaces(d.workspaces ?? []);
+      })
+      .catch((e) => {
+        if (!cancelled) notify(e.message);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [currentAccountId]);
+  /* eslint-enable react-hooks/set-state-in-effect */
+  useEffect(() => {
+    // The selected lot must remain valid when the supplied record set changes.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (!lots.includes(lot)) setLot(lots[0] ?? "");
+  }, [lots, lot]);
   useEffect(() => {
     const listener = (e: BeforeUnloadEvent) => {
       if (dirty) {
@@ -241,33 +432,96 @@ export default function Lotline({
     return () => window.removeEventListener("beforeunload", listener);
   }, [dirty]);
   async function run(fn: () => Promise<void>) {
+    if (operationLock.current) return;
+    operationLock.current = true;
     setBusy(true);
     try {
       await fn();
     } catch (e) {
       notify(e instanceof Error ? e.message : "Something went wrong.");
     } finally {
+      operationLock.current = false;
+      setBusy(false);
+    }
+  }
+  async function authenticate(event: React.FormEvent) {
+    event.preventDefault();
+    if (operationLock.current) return;
+    setAuthError("");
+    setAuthNotice("");
+    operationLock.current = true;
+    setBusy(true);
+    try {
+      if (authMode === "reset") {
+        await resetPassword(authEmail.trim());
+        setAuthNotice(
+          "If an account exists for this email, password reset instructions are on their way. Check your inbox and spam folder.",
+        );
+      } else {
+        if (authMode === "signup")
+          await signUp(authName.trim(), authEmail.trim(), authPassword);
+        else await signIn(authEmail.trim(), authPassword);
+        setAuthPassword("");
+        setModal(null);
+        notify(
+          "Signed in. Your current records are ready to save to your private workspace.",
+        );
+      }
+    } catch (error) {
+      setAuthError(
+        error instanceof Error
+          ? error.message
+          : "Unable to sign in. Please try again.",
+      );
+    } finally {
+      operationLock.current = false;
       setBusy(false);
     }
   }
   async function save() {
+    if (!name.trim()) {
+      notify("Give this workspace a name before saving.");
+      setModal("workspaces");
+      return;
+    }
     if (!user) {
       setModal("signin");
       return;
     }
     await run(async () => {
+      const savingAccount = accountId.current;
+      const savingDraft = { dataset, name, revisionNotes };
       const d = active
-        ? await api("/api/workspaces/" + active.id, "PUT", {
+        ? await api<WorkspaceResponse>("/api/workspaces/" + active.id, "PUT", {
             name,
             dataset,
             revision: active.revision,
+            ...(revisionNotes.length
+              ? { revisionNote: revisionNotes.join("; ").slice(0, 1000) }
+              : {}),
           })
-        : await api("/api/workspaces", "POST", { name, dataset });
+        : await api<WorkspaceResponse>("/api/workspaces", "POST", {
+            name,
+            dataset,
+            ...(revisionNotes.length
+              ? { revisionNote: revisionNotes.join("; ").slice(0, 1000) }
+              : {}),
+          });
+      if (accountId.current !== savingAccount) return;
       setActive(d.workspace);
-      setDirty(false);
-      const list = await api("/api/workspaces");
+      const unchanged =
+        liveDraft.current.dataset === savingDraft.dataset &&
+        liveDraft.current.name === savingDraft.name;
+      setDirty(!unchanged);
+      if (unchanged) setRevisionNotes([]);
+      const list = await api<WorkspaceListResponse>("/api/workspaces");
+      if (accountId.current !== savingAccount) return;
       setWorkspaces(list.workspaces);
-      notify("Workspace saved. Your records are private to your account.");
+      notify(
+        unchanged
+          ? "Workspace saved. Your records are private to your account."
+          : "Previous changes saved. You have newer unsaved edits to save.",
+      );
       setModal(null);
     });
   }
@@ -278,7 +532,9 @@ export default function Lotline({
     )
       return;
     await run(async () => {
-      const d = await api("/api/workspaces/" + id);
+      const openingAccount = accountId.current;
+      const d = await api<WorkspaceResponse>("/api/workspaces/" + id);
+      if (accountId.current !== openingAccount) return;
       setActive(d.workspace);
       setDataset(d.workspace.dataset);
       setName(d.workspace.name);
@@ -288,6 +544,8 @@ export default function Lotline({
       setDrills([]);
       setEvents([]);
       setIsSample(false);
+      setRevisionNotes([]);
+      setQuery("");
     });
   }
   function changeDataset(next: Dataset) {
@@ -305,22 +563,29 @@ export default function Lotline({
     setName("Cedar & Crumb");
     setActive(null);
     setLot(demoLot);
+    setRevisionNotes([]);
     setDirty(false);
     setDrills([]);
     setEvents([]);
     setTab("Trace workspace");
+    setQuery("");
+    setNotes("");
+    setModal(null);
     notify(
       "Synthetic sample loaded. No real businesses or customers are represented.",
     );
   }
   async function loadHistory() {
+    if (busy) return;
     setTab("Drill history");
     if (active)
       await run(async () => {
+        const historyAccount = accountId.current;
         const [d, e] = await Promise.all([
-          api("/api/workspaces/" + active.id + "/drills"),
-          api("/api/workspaces/" + active.id + "/events"),
+          api<DrillListResponse>("/api/workspaces/" + active.id + "/drills"),
+          api<EventListResponse>("/api/workspaces/" + active.id + "/events"),
         ]);
+        if (accountId.current !== historyAccount) return;
         setDrills(d.drills ?? []);
         setEvents(e.events ?? []);
       });
@@ -337,15 +602,25 @@ export default function Lotline({
       return;
     }
     await run(async () => {
+      const drillAccount = accountId.current;
       await api("/api/workspaces/" + active.id + "/drills", "POST", {
         lot,
         notes,
       });
+      if (accountId.current !== drillAccount) return;
       setModal(null);
       notify(
         "Drill snapshot recorded with source evidence and unresolved gaps.",
       );
-      await loadHistory();
+      const [history, activity] = await Promise.all([
+        api<DrillListResponse>("/api/workspaces/" + active.id + "/drills"),
+        api<EventListResponse>("/api/workspaces/" + active.id + "/events"),
+      ]);
+      if (accountId.current !== drillAccount) return;
+      setDrills(history.drills ?? []);
+      setEvents(activity.events ?? []);
+      setNotes("");
+      setTab("Drill history");
     });
   }
   function exportCSV() {
@@ -429,7 +704,7 @@ export default function Lotline({
         s.unit,
         s.source,
         s.row,
-        "unresolved — review scope",
+        "unresolved · review scope",
         s.originalBatch ?? "",
         s.correctionNote ?? "",
         s.correctedAt ?? "",
@@ -449,6 +724,8 @@ export default function Lotline({
   }
   async function readFile(file: File) {
     setImportErrors([]);
+    setFileData(null);
+    setMapping({});
     if (file.size > 1_000_000) {
       setImportErrors(["Use a CSV file under 1 MB."]);
       return;
@@ -491,13 +768,16 @@ export default function Lotline({
     );
   }
   async function suggestMapping() {
+    if (!fileData) return;
     if (!user) {
-      setModal("signin");
+      autoMap(importKind, fileData.headers);
+      notify(
+        "Columns matched locally by name. Review each connection before importing.",
+      );
       return;
     }
-    if (!fileData) return;
     await run(async () => {
-      const d = await api("/api/map", "POST", {
+      const d = await api<MappingResponse>("/api/map", "POST", {
         kind: importKind,
         headers: fileData.headers,
         sampleRows: fileData.rows
@@ -577,6 +857,54 @@ export default function Lotline({
       setImportErrors([e instanceof Error ? e.message : "Import failed."]);
     }
   }
+  function commitRecordEdit() {
+    if (!editRecord) return;
+    const note = editRecord.note.trim();
+    if (!note) {
+      setEditRecord({
+        ...editRecord,
+        error: "Describe the source you checked before changing this record.",
+      });
+      return;
+    }
+    let record = { ...editRecord.record };
+    if (editRecord.kind === "shipments") {
+      const original = dataset.shipments.find((r) => r.id === record.id);
+      if (original && original.batch !== record.batch)
+        record = {
+          ...record,
+          originalBatch: original.originalBatch ?? original.batch,
+          correctionNote: note,
+          correctedAt: new Date().toISOString(),
+        };
+    }
+    const checked = datasetSchema.safeParse({
+      ...dataset,
+      [editRecord.kind]: dataset[editRecord.kind].map((r) =>
+        r.id === record.id ? record : r,
+      ),
+    });
+    if (!checked.success) {
+      setEditRecord({
+        ...editRecord,
+        error: checked.error.issues
+          .map(
+            (i) => `${label(String(i.path.at(-1) ?? "Record"))}: ${i.message}`,
+          )
+          .join(" "),
+      });
+      return;
+    }
+    changeDataset(checked.data);
+    setRevisionNotes([
+      ...revisionNotes,
+      `${editRecord.kind} ${record.id}: ${note}`,
+    ]);
+    setEditRecord(null);
+    notify(
+      "Record updated. Original source data is preserved. Save the workspace to record your reviewer note.",
+    );
+  }
   const tableRecords = dataset[recordKind].filter((r) =>
     JSON.stringify(r).toLowerCase().includes(query.toLowerCase()),
   );
@@ -609,7 +937,32 @@ export default function Lotline({
   };
   return (
     <div className="shell">
-      <aside className={"sidebar " + (mobile ? "visible" : "")}>
+      {mobile && (
+        <button
+          className="navigation-scrim"
+          aria-label="Close navigation"
+          aria-hidden="true"
+          tabIndex={-1}
+          onClick={() => setMobile(false)}
+        />
+      )}
+      <aside
+        id="workspace-navigation"
+        role={mobile ? "dialog" : undefined}
+        aria-modal={mobile || undefined}
+        aria-label="Workspace navigation"
+        onClick={() => {
+          if (mobile) setMobile(false);
+        }}
+        className={"sidebar " + (mobile ? "visible" : "")}
+      >
+        <button
+          className="iconbtn drawer-close"
+          aria-label="Close navigation"
+          onClick={() => setMobile(false)}
+        >
+          <X size={20} />
+        </button>
         <a className="brand" href="/" aria-label="Lotline home">
           <span className="brandmark">
             <GitBranch size={22} />
@@ -619,7 +972,10 @@ export default function Lotline({
         <div className="workspace-label">YOUR WORKSPACE</div>
         <button
           className="workspace-switch"
-          onClick={() => setModal("workspaces")}
+          onClick={() => {
+            setMobile(false);
+            setModal("workspaces");
+          }}
         >
           <span className="workspace-avatar">{name.slice(0, 1)}</span>
           <span>
@@ -645,9 +1001,8 @@ export default function Lotline({
               className={tab === item.name ? "selected" : ""}
               onClick={() => {
                 setMobile(false);
-                item.name === "Drill history"
-                  ? loadHistory()
-                  : setTab(item.name);
+                if (item.name === "Drill history") loadHistory();
+                else setTab(item.name);
               }}
             >
               <item.icon size={18} />
@@ -681,20 +1036,24 @@ export default function Lotline({
             </button>
           ) : (
             <button onClick={() => setModal("signin")}>
-              <span className="user-avatar">SG</span>
+              <span className="user-avatar">
+                <ShieldCheck size={16} />
+              </span>
               <span>Save your own workspace</span>
               <ArrowUpRight size={15} />
             </button>
           )}
-          <small>Created by Shivam Gupta · Build North 2026</small>
+          <small>Created by Shivam Gupta</small>
         </div>
       </aside>
-      <main>
+      <main inert={mobile}>
         <header className="topbar">
           <div className="breadcrumb">
             <button
               className="mobile-menu iconbtn"
-              aria-label="Open navigation"
+              aria-label={mobile ? "Close navigation" : "Open navigation"}
+              aria-expanded={mobile}
+              aria-controls="workspace-navigation"
               onClick={() => setMobile(!mobile)}
             >
               <Menu size={20} />
@@ -744,6 +1103,9 @@ export default function Lotline({
                     return;
                   setIsSample(false);
                   setName("My food business");
+                  setDrills([]);
+                  setEvents([]);
+                  setRevisionNotes([]);
                   setDataset(empty);
                   setLot("");
                   setActive(null);
@@ -811,7 +1173,7 @@ export default function Lotline({
                       )}
                       {lots.map((l) => (
                         <option key={l} value={l}>
-                          {l} —{" "}
+                          {l} ·{" "}
                           {dataset.receipts.find((r) => r.lot === l)
                             ?.ingredient ?? "Unmatched ingredient"}
                         </option>
@@ -1224,12 +1586,12 @@ export default function Lotline({
                       </tr>
                     </thead>
                     <tbody>
-                      {tableRecords.map((r: any) => (
+                      {tableRecords.map((r) => (
                         <tr key={r.id}>
                           {headings[recordKind].map((h) => (
                             <td key={h}>
-                              {r[h] !== "" ? (
-                                String(r[h] ?? "—")
+                              {r[h as keyof SourceRecord] !== "" ? (
+                                String(r[h as keyof SourceRecord] ?? "·")
                               ) : (
                                 <span className="badge amber">Missing</span>
                               )}
@@ -1251,25 +1613,41 @@ export default function Lotline({
                             </button>
                           </td>
                           <td>
-                            <button
-                              className="iconbtn"
-                              aria-label={"Remove record " + r.id}
-                              onClick={() => {
-                                if (
-                                  window.confirm(
-                                    "Remove this record? The trace will recalculate.",
+                            <div className="record-actions">
+                              <button
+                                className="iconbtn"
+                                aria-label={"Edit record " + r.id}
+                                onClick={() =>
+                                  setEditRecord({
+                                    kind: recordKind,
+                                    record: { ...r },
+                                    note: "",
+                                    error: "",
+                                  })
+                                }
+                              >
+                                <Pencil size={15} />
+                              </button>
+                              <button
+                                className="iconbtn"
+                                aria-label={"Remove record " + r.id}
+                                onClick={() => {
+                                  if (
+                                    window.confirm(
+                                      "Remove this record? The trace will recalculate.",
+                                    )
                                   )
-                                )
-                                  changeDataset({
-                                    ...dataset,
-                                    [recordKind]: dataset[recordKind].filter(
-                                      (x) => x.id !== r.id,
-                                    ),
-                                  });
-                              }}
-                            >
-                              <Trash2 size={15} />
-                            </button>
+                                    changeDataset({
+                                      ...dataset,
+                                      [recordKind]: dataset[recordKind].filter(
+                                        (x) => x.id !== r.id,
+                                      ),
+                                    });
+                                }}
+                              >
+                                <Trash2 size={15} />
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       ))}
@@ -1376,7 +1754,7 @@ export default function Lotline({
                     </label>
                     <select
                       id={"resolve-" + s.id}
-                      defaultValue=""
+                      value=""
                       onChange={(e) => {
                         if (!e.target.value) return;
                         setCorrection({
@@ -1445,7 +1823,7 @@ export default function Lotline({
                       className="btn"
                       onClick={() =>
                         run(async () => {
-                          const snapshot = await api(
+                          const snapshot = await api<{ drill: Drill }>(
                             "/api/workspaces/" + active?.id + "/drills/" + d.id,
                           );
                           download(
@@ -1476,7 +1854,7 @@ export default function Lotline({
               {events.length > 0 && (
                 <section className="panel audit-panel">
                   <h2>Workspace activity</h2>
-                  {events.slice(0, 20).map((e: any) => (
+                  {events.slice(0, 20).map((e) => (
                     <div key={e.id} className="audit-row">
                       <span className="live-dot" />
                       <strong>{label(e.action ?? "Updated")}</strong>
@@ -1535,7 +1913,7 @@ export default function Lotline({
               correction preserves its original batch value, reviewer note, and
               correction time below.
             </p>
-            {evidence.records.map((r: any, i) => (
+            {evidence.records.map((r, i) => (
               <div className="evidence-record" key={i}>
                 <span className="badge green">
                   <FileText size={12} />
@@ -1585,6 +1963,110 @@ export default function Lotline({
             <button className="btn" onClick={() => setEvidence(null)}>
               Close evidence
             </button>
+          </section>
+        </div>
+      )}
+      {editRecord && (
+        <div className="modal-backdrop" onClick={() => setEditRecord(null)}>
+          <section
+            className="modal"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Edit source record"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <ModalHeader
+              title="Update with evidence."
+              close={() => setEditRecord(null)}
+            />
+            <p>
+              Correct the working record after checking your source. The
+              original CSV row remains unchanged in source evidence.
+            </p>
+            <span className="badge green">
+              {editRecord.record.source} · row {editRecord.record.row}
+            </span>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                commitRecordEdit();
+              }}
+            >
+              <div className="mapping-grid">
+                {fieldsByKind[editRecord.kind]
+                  .filter((field) => !["id", "source", "row"].includes(field))
+                  .map((field) => {
+                    const numeric = ["quantity", "outputQuantity"].includes(
+                      field,
+                    );
+                    return (
+                      <label key={field}>
+                        {label(field)}
+                        <input
+                          type={
+                            numeric
+                              ? "number"
+                              : field.endsWith("Date")
+                                ? "date"
+                                : "text"
+                          }
+                          value={String(
+                            editRecord.record[field as keyof RecordDraft] ?? "",
+                          )}
+                          step={numeric ? "any" : undefined}
+                          min={numeric ? "0.000001" : undefined}
+                          maxLength={field === "email" ? 320 : 240}
+                          onChange={(e) =>
+                            setEditRecord({
+                              ...editRecord,
+                              record: {
+                                ...editRecord.record,
+                                [field]: numeric
+                                  ? e.target.value === ""
+                                    ? ""
+                                    : Number(e.target.value)
+                                  : e.target.value,
+                              },
+                              error: "",
+                            })
+                          }
+                        />
+                      </label>
+                    );
+                  })}
+              </div>
+              <label htmlFor="edit-reviewer-note">
+                What source verifies this change?
+              </label>
+              <textarea
+                id="edit-reviewer-note"
+                value={editRecord.note}
+                rows={3}
+                maxLength={800}
+                required
+                onChange={(e) =>
+                  setEditRecord({ ...editRecord, note: e.target.value })
+                }
+                placeholder="For example: checked signed receiving slip RC-104."
+              />
+              {editRecord.error && (
+                <div className="form-error" role="alert">
+                  {editRecord.error}
+                </div>
+              )}
+              <div className="modal-actions">
+                <button className="btn dark" type="submit">
+                  Apply verified change
+                </button>
+                <button
+                  className="btn"
+                  type="button"
+                  onClick={() => setEditRecord(null)}
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
           </section>
         </div>
       )}
@@ -1640,6 +2122,10 @@ export default function Lotline({
                       : r,
                   ),
                 });
+                setRevisionNotes([
+                  ...revisionNotes,
+                  `Shipment ${correction.id} assigned to ${correction.batch}: ${correction.note.trim()}`,
+                ]);
                 setCorrection(null);
                 notify(
                   "Verified correction added. Save the workspace to keep the revised record.",
@@ -1678,41 +2164,157 @@ export default function Lotline({
                             ? "Your private account."
                             : "A clearer picture. Honest boundaries."
               }
-              close={() => setModal(null)}
+              close={() => !busy && setModal(null)}
             />
             {modal === "signin" && (
               <>
-                <div className="modal-emblem">
-                  <ShieldCheck size={32} />
-                </div>
                 <p>
-                  Sign in to save private workspaces, record drill history, and
-                  return to your records on another device.
+                  Save private workspaces, preserve source evidence, and return
+                  to your records on another device.
                 </p>
-                <a
-                  className="btn dark wide"
-                  href="/signin-with-chatgpt?return_to=%2F"
-                  target="_top"
+                <div
+                  className="segmented auth-tabs"
+                  aria-label="Account options"
+                >
+                  {(["signin", "signup"] as const).map((mode) => (
+                    <button
+                      key={mode}
+                      disabled={busy}
+                      className={authMode === mode ? "active" : ""}
+                      onClick={() => {
+                        setAuthMode(mode);
+                        setAuthError("");
+                        setAuthNotice("");
+                      }}
+                    >
+                      {mode === "signin" ? "Sign in" : "Create account"}
+                    </button>
+                  ))}
+                </div>
+                <form onSubmit={authenticate} className="auth-form">
+                  {authMode === "reset" && <h3>Reset your password</h3>}
+                  {authMode === "signup" && (
+                    <>
+                      <label htmlFor="auth-name">Your name</label>
+                      <input
+                        id="auth-name"
+                        name="name"
+                        autoComplete="name"
+                        value={authName}
+                        onChange={(e) => setAuthName(e.target.value)}
+                        required
+                        maxLength={80}
+                        placeholder="Shivam Gupta"
+                        disabled={busy}
+                      />
+                    </>
+                  )}
+                  <label htmlFor="auth-email">Email address</label>
+                  <input
+                    id="auth-email"
+                    name="email"
+                    type="email"
+                    autoComplete="email"
+                    value={authEmail}
+                    onChange={(e) => setAuthEmail(e.target.value)}
+                    required
+                    maxLength={320}
+                    placeholder="you@yourbusiness.com"
+                    disabled={busy}
+                  />
+                  {authMode !== "reset" && (
+                    <>
+                      <label htmlFor="auth-password">Password</label>
+                      <div className="password-field">
+                        <input
+                          id="auth-password"
+                          name="password"
+                          type={showPassword ? "text" : "password"}
+                          autoComplete={
+                            authMode === "signup"
+                              ? "new-password"
+                              : "current-password"
+                          }
+                          value={authPassword}
+                          onChange={(e) => setAuthPassword(e.target.value)}
+                          required
+                          minLength={authMode === "signup" ? 8 : undefined}
+                          maxLength={128}
+                          disabled={busy}
+                          aria-describedby={
+                            authMode === "signup"
+                              ? "password-guidance"
+                              : undefined
+                          }
+                        />
+                        <button
+                          type="button"
+                          className="iconbtn"
+                          aria-label={
+                            showPassword ? "Hide password" : "Show password"
+                          }
+                          onClick={() => setShowPassword(!showPassword)}
+                        >
+                          {showPassword ? (
+                            <EyeOff size={18} />
+                          ) : (
+                            <Eye size={18} />
+                          )}
+                        </button>
+                      </div>
+                      {authMode === "signup" && (
+                        <p className="fineprint" id="password-guidance">
+                          Use at least 8 characters. A unique password helps
+                          keep your records private.
+                        </p>
+                      )}
+                    </>
+                  )}
+                  {authError && (
+                    <div className="form-error" role="alert">
+                      {authError}
+                    </div>
+                  )}
+                  {authNotice && (
+                    <div className="form-notice" role="status">
+                      {authNotice}
+                    </div>
+                  )}
+                  <button
+                    className="btn dark wide"
+                    type="submit"
+                    disabled={busy}
+                  >
+                    {busy ? (
+                      <Loader2 size={17} className="spin" />
+                    ) : (
+                      <ShieldCheck size={17} />
+                    )}{" "}
+                    {busy
+                      ? "Please wait…"
+                      : authMode === "signup"
+                        ? "Create private account"
+                        : authMode === "reset"
+                          ? "Send reset instructions"
+                          : "Sign in"}
+                  </button>
+                </form>
+                <button
+                  className="text-link auth-reset"
+                  disabled={busy}
                   onClick={() => {
-                    try {
-                      sessionStorage.setItem(
-                        "lotline-signin-draft",
-                        JSON.stringify({ name, dataset, lot, isSample }),
-                      );
-                    } catch {
-                      notify(
-                        "Download a backup before signing in; the browser could not preserve this draft.",
-                      );
-                    }
+                    setAuthMode(authMode === "reset" ? "signin" : "reset");
+                    setAuthError("");
+                    setAuthNotice("");
                   }}
                 >
-                  Sign in with ChatGPT <ArrowRight size={17} />
-                </a>
+                  {authMode === "reset"
+                    ? "Back to sign in"
+                    : "Forgot your password?"}
+                </button>
                 <p className="fineprint">
-                  The public sample works without an account. Your imported
-                  records stay in this browser session until you save them. A
-                  temporary session draft protects your work through sign-in.
-                  You can also export a backup.
+                  Your current records stay in this session while you sign in.
+                  The synthetic sample is available without an account.
                 </p>
                 <button
                   className="btn wide"
@@ -1724,7 +2326,7 @@ export default function Lotline({
                     )
                   }
                 >
-                  Download unsaved record backup
+                  Download current workspace backup
                 </button>
               </>
             )}
@@ -1737,18 +2339,35 @@ export default function Lotline({
                 <div className="notice">
                   <ShieldCheck size={20} />
                   <p>
-                    Data is stored in Cloudflare D1. Records are sent to the
-                    model provider only when you explicitly request AI mapping.
-                    Do not upload consumer personal or health information.
+                    Your workspace is stored privately in Firebase. Records are
+                    processed by the application server when you save or request
+                    column suggestions. This deployment does not send records to
+                    an AI model. Keep consumer personal and health information
+                    out of imported files.
                   </p>
                 </div>
-                <a
+                <button
                   className="btn"
-                  href="/signout-with-chatgpt?return_to=%2F"
-                  target="_top"
+                  disabled={busy}
+                  onClick={() =>
+                    run(async () => {
+                      if (
+                        dirty &&
+                        !window.confirm(
+                          "You have unsaved records. Sign out and clear this draft? Cancel to save or download a backup first.",
+                        )
+                      )
+                        return;
+                      await signOut();
+                      setModal(null);
+                      notify(
+                        "Signed out. Your saved workspaces remain private.",
+                      );
+                    })
+                  }
                 >
                   <LogOut size={16} /> Sign out
-                </a>
+                </button>
               </>
             )}
             {modal === "workspaces" && (
@@ -1777,6 +2396,7 @@ export default function Lotline({
                         return;
                       setActive(null);
                       setDataset(empty);
+                      setRevisionNotes([]);
                       setLot("");
                       setName("My food business");
                       setIsSample(false);
@@ -1854,6 +2474,7 @@ export default function Lotline({
                   <button
                     onClick={() => {
                       setModal(null);
+                      setReportTime(new Date().toISOString());
                       setTimeout(() => window.print(), 100);
                     }}
                   >
@@ -1929,7 +2550,7 @@ export default function Lotline({
                     )}{" "}
                     Save drill snapshot
                   </button>
-                  <button className="btn" onClick={save}>
+                  <button className="btn" disabled={busy} onClick={save}>
                     Save workspace first
                   </button>
                 </div>
@@ -1953,13 +2574,13 @@ export default function Lotline({
                   }}
                 >
                   <option value="receipts">
-                    Receiving — ingredient lots from suppliers
+                    Receiving · ingredient lots from suppliers
                   </option>
                   <option value="production">
-                    Production — ingredients used in finished batches
+                    Production · ingredients used in finished batches
                   </option>
                   <option value="shipments">
-                    Shipments — finished batches sent to customers
+                    Shipments · finished batches sent to customers
                   </option>
                 </select>
                 <div className="upload-zone">
@@ -1989,6 +2610,7 @@ export default function Lotline({
                     onChange={(e) => {
                       const f = e.target.files?.[0];
                       if (f) readFile(f);
+                      e.target.value = "";
                     }}
                   />
                 </div>
@@ -2011,9 +2633,10 @@ export default function Lotline({
                       </button>
                     </div>
                     <p className="fineprint">
-                      Suggestions may use AI if configured. Clicking sends
-                      headers and up to 3 sample rows to the server; configured
-                      AI sends them to Anthropic. Review every suggested field.
+                      Column suggestions match known header names. They never
+                      change source values. When signed in, this sends headers
+                      and up to 3 sample rows to the application server. Review
+                      every field before importing.
                     </p>
                     <div className="mapping-grid">
                       {fieldsByKind[importKind].map((field) => (
@@ -2049,7 +2672,7 @@ export default function Lotline({
                           {fileData.rows.slice(0, 3).map((r, i) => (
                             <tr key={i}>
                               {r.map((v, j) => (
-                                <td key={j}>{v || "—"}</td>
+                                <td key={j}>{v || "·"}</td>
                               ))}
                             </tr>
                           ))}
@@ -2073,8 +2696,12 @@ export default function Lotline({
                         Replace all existing {importKind}
                       </option>
                     </select>
-                    <button className="btn dark wide" onClick={commitImport}>
-                      <Check size={17} /> Review complete — import{" "}
+                    <button
+                      className="btn dark wide"
+                      disabled={busy}
+                      onClick={commitImport}
+                    >
+                      <Check size={17} /> Review complete · import{" "}
                       {fileData.rows.length} rows
                     </button>
                   </>
@@ -2125,9 +2752,19 @@ export default function Lotline({
                         setIsSample(false);
                         changeDataset(validated);
                         setName(
-                          String(d.name ?? "Restored workspace").slice(0, 80),
+                          String(
+                            d.name ?? d.workspace ?? "Restored workspace",
+                          ).slice(0, 80),
                         );
-                        setLot(d.dataset.receipts[0]?.lot ?? "");
+                        const restoredLot =
+                          typeof d.lot === "string" ? d.lot : "";
+                        setLot(
+                          restoredLot ||
+                            validated.receipts[0]?.lot ||
+                            validated.production[0]?.lot ||
+                            "",
+                        );
+                        setRevisionNotes([]);
                         setModal(null);
                         notify(
                           "Backup restored. Review and save your workspace.",
@@ -2269,7 +2906,7 @@ export default function Lotline({
             )}
           </tbody>
         </table>
-        <h2>Unresolved shipments — included for review</h2>
+        <h2>Unresolved shipments · included for review</h2>
         {result.uncertainShipments.map((s) => (
           <p key={s.id}>
             {s.customer} · {s.quantity} {s.unit} · {s.source}:{s.row} · batch{" "}

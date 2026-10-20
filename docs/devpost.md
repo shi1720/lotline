@@ -2,58 +2,77 @@
 
 **Find the lot. Follow the records. See what is missing.**
 
+Live application: https://lotline-trace.web.app
+
+Public repository: https://github.com/shi1720/lotline
+
 ## Inspiration
 
-A small food maker can have every invoice and production spreadsheet on file and still struggle to answer a simple question: “Where did this ingredient lot go?” The records exist across receiving, production and customer shipments. The difficult part is connecting them, and knowing when the connection cannot be proved.
+A supplier flags an ingredient lot. A small food producer's quality lead needs to answer three questions: which batches used it, where they shipped, and what the records cannot establish.
 
-Lotline is built for the operations or quality lead at a small packaged-food manufacturer who needs to rehearse that question before a real incident. CFIA's guidance makes this a concrete workflow: applicable businesses keep traceability records, and relevant operators conduct and document recall simulations. [CFIA traceability guidance](https://inspection.canada.ca/en/food-safety-industry/toolkit-food-businesses/traceability), [CFIA inspection procedure](https://inspection.canada.ca/en/inspection-and-enforcement/guidance-food-activities/preventive-control-inspection/traceability-inspection)
+Those answers may already exist in receiving logs, production sheets and customer shipment files. But having the files is different from having a trace another person can inspect. The most dangerous result is a confident-looking answer that quietly skips a missing batch code.
+
+We built Lotline around that missing link. The initial user is an operations or quality lead at a small packaged-food producer who already keeps spreadsheets and wants to rehearse a trace without replacing their entire inventory system.
 
 ## What it does
 
-Lotline connects receiving, production and shipment CSVs into a lot-level trace. Its three main views are Trace workspace, Source records and Drill history. An operator selects an ingredient lot, inspects the connected batches and distribution records, opens the supporting source rows, and reviews missing or ambiguous information. CSV and JSON exports preserve the results; a print-ready report can be saved as PDF through the browser.
+Lotline turns receiving, production and shipment CSVs into an ingredient-to-batch-to-customer trace. Users review column mappings, inspect original source rows, investigate missing evidence, save private workspaces and record rehearsal snapshots. CSV, complete evidence JSON and printable reports make the result reviewable outside the app.
 
-The demo follows **Cedar & Crumb**, a fictional granola maker investigating sesame lot **SES-104**. Two batches use 90 kg of the 100 kg received and produce 900 cases. Records connect 650 shipped cases to three customers and leave a calculated 250-case balance. A separate 40-case shipment has no batch assignment and remains in review scope. The complete fixture contains two receipts, three production records and five shipments. All companies, customers and quantities are synthetic: this is a rehearsal, not a real recall.
+The fictional Cedar & Crumb example follows sesame lot SES-104. Its 100 kg receipt connects to two batches using 90 kg and producing 900 cases. Records connect 650 shipped cases to three customers, with a calculated 250-case stock balance. A separate forty-case shipment has no batch assignment. It stays unresolved instead of being assigned through guesswork.
 
-Imported CSVs retain all source columns, including unmapped values; the evidence dialog distinguishes the Original CSV row from normalized/current values and reviewed corrections. The central design choice is to keep uncertainty visible. A missing lot code becomes a review item. A plausible association is not silently promoted into a confirmed connection. Source evidence sits beside the result so a human can assess it.
+All sample companies and records are synthetic. Calculated stock means recorded output less recorded shipments, not a physical count.
 
-## How it is built
+## How we built it
 
-The application uses a React/TypeScript interface on a Vinext starter and Sites deployment infrastructure. Signed-in workspaces use Sites-provided ChatGPT authentication and user-owned persistent storage. The lineage and reconciliation logic is deterministic: it does not depend on an LLM inventing the relationships.
+The current application uses React, TypeScript, Vite and Tailwind. Firebase Hosting serves the public application at lotline-trace.web.app. Firebase Authentication provides email/password accounts. A Cloud Run Express API verifies Firebase ID tokens and saves user-scoped records to the named Firestore database `lotline`.
 
-An optional server-side Anthropic integration suggests column mappings when a valid API key is configured. The explicit Suggest mapping action sends headers and up to three sample rows; users review every proposed field. Strict header allowlists, timeouts and durable per-user quotas constrain the feature. Missing configuration or a failed call returns an honestly labeled rules fallback. The initial test run used mocked provider responses; no live Anthropic call is claimed.
+The API runs in us-central1; the database is in Montreal. Firestore transactions enforce revision checks and storage limits. Rehearsal snapshots are computed from saved records server-side, preserving the dataset, selected lot, result and source revision at that moment.
 
-The project targets **Best Overall**. We are not claiming Expo, Clerk, Eon or SurrealDB category integrations.
+The trace engine is deterministic. Exact recorded identifiers establish links; a model does not invent relationships. This deployment uses rule-based column suggestions and requires no live model key. Imported records retain original mapped and unmapped source cells separately from normalized fields and reviewed corrections.
 
-## What we tested
+## Challenges we ran into
 
-Twenty-four engine/import tests, fifteen API tests and two Worker integration tests pass: forty-one in total. TypeScript checking and the production build also pass. They cover the sample arithmetic, missing/unknown associations, malformed CSV, incompatible units, schema validation, ownership isolation, origin checks, request limits, stale-write conflicts, immutable snapshots, quotas and mocked AI output validation. API tests exercise the actual handlers against SQLite with injected platform identity and D1 bindings. Separate production browser checks verified ChatGPT sign-in, D1 workspace save/reopen, a drill snapshot with multiline notes, snapshot JSON download, receiving-CSV import and a 390 × 844 mobile layout. Production probes confirmed the root response and rejected anonymous requests carrying forged identity headers. Two genuine-account browser isolation has not been tested; production data residency and live model access are not claimed.
+A neat diagram was easier than an honest one. We had to handle supplier-local lot collisions, inconsistent units, duplicate records, missing shipment assignments and contradictory batch output without implying the evidence was complete.
 
-## Why this approach
+Independent adversarial review also found that impossible dates and missing business identities could leave a trace looking ready. We reproduced those cases, added critical findings and regression tests, and made conflicting or negative balances disable quantity assurance while preserving the records for investigation.
 
-Existing platforms such as Katana and FoodDocs already support traceability. Lotline explores a narrower adoption path: begin with the files a small maker already has, make the trace inspectable, and show the gaps that prevent a complete answer. We have not established that these competitors lack equivalent import or review capabilities. [Katana documentation](https://support.katanamrp.com/en/articles/14737323-how-to-use-the-traceability-explorer), [FoodDocs](https://www.fooddocs.com/pricing)
+Moving to a clean Firebase URL meant replacing the original hosting-owned identity and database assumptions. The active backend now validates Firebase tokens, scopes records by verified user identity and checks revisions before saving. Old deployment tests remain distinct from current Firebase verification.
 
-## Responsible operation
+## Accomplishments that we're proud of
 
-Saved workspace and snapshot payloads share a tested 25 MiB per-user storage quota, enforced atomically with row/request/account limits. A public privacy notice describes retention, deletion and remaining hosting limitations.
+The product makes missing evidence visible at the moment someone needs an answer. A forty-case shipment with no batch code stays an open question, even when hiding it would make the screen look cleaner.
 
-Lotline helps prepare and inspect records. It does not determine whether food is safe, whether a recall is necessary, or whether an operator meets legal requirements. A qualified person must make operational decisions. Demonstration exports should remain visibly labeled as synthetic/drill material.
+The workflow goes beyond a chart: reviewed CSV import, original source evidence, private persistence, documented corrections, rehearsal history and portable exports fit together around one specific job. The final suite passes fifty-five tests, including thirty trace/import cases and newly reproduced failures. Twenty live checks with genuine Firebase accounts verify persistence, isolation, revision conflicts and snapshots. A hosted browser walkthrough confirms private workspace loading, CSV import, saved rehearsal history and actual CSV, JSON and PDF exports.
 
-Before real customer use, data location, retention/deletion, backups, tenant isolation, access permissions and unsupported record scenarios need explicit validation. Do not upload confidential production data merely to try the public demo.
+## What we learned
 
-## Commercial direction
+The useful question was not how much AI we could add. It was which claims the records support and how a reviewer can check them. Deterministic joins are appropriate for exact lot identifiers. Missing links should lead to investigation, not an invented answer.
 
-The proposed first buyer is a small manufacturer using spreadsheets rather than a full ERP. A CAD $99/site/month pricing experiment would test whether recurring record checks and drill history are valuable enough to support a subscription. A guided one-off drill is an alternative to test. These are hypotheses: we are not claiming customers, revenue, interviews or measured time savings.
+We also learned to distinguish a working product from a validated business. A specific buyer and plausible pricing do not prove demand. No customer interviews, paid pilots, revenue or measured time savings are claimed.
 
-The next step is an observed pilot with a food-safety practitioner and de-identified records, measuring setup time, unresolved linkage rates, export usefulness and repeat usage.
+## What's next for Lotline
 
-## Creator and disclosure
+The first commercial experiment is an observed pilot with a small food producer and a qualified food-safety practitioner, using permissioned, de-identified records. We would measure setup time, missing-link rates, usefulness of the exported evidence and whether teams return for later rehearsals.
 
-**Shivam Gupta — project creator.** Shivam set the product ambition, commercial requirements and quality bar. Research, code, synthetic fixtures, tests and submission drafts were developed with substantial AI assistance using Codex. Manual review and recording contributions should be added here only after they occur.
+A proposed CAD 99 per site per month subscription would test demand for recurring record checks and saved history. A one-off guided drill is another pricing hypothesis. Neither has been validated or sold. The adoption wedge is a focused workflow around existing files, inspectable evidence and visible uncertainty, rather than replacing a broader ERP.
 
-The application began from a Vinext starter. The Lotline product interface, traceability workflow, domain logic, synthetic sample records and documentation were developed during this build. The underlying framework and deployment/authentication infrastructure pre-existed the project. No prior customer product or proprietary customer dataset is claimed.
+Before use in real operations, we need practitioner acceptance and appropriate recovery, retention, privacy and support procedures. The current model supports one ingredient-to-finished-batch transformation. It does not reconstruct rework, returns, transfers or cross-contact. Lotline prepares evidence; responsible people determine incident scope and food safety.
 
-## Publication status
+## Team and disclosure of prior work
 
-[Live application](https://lotline-recall.sg127977958.chatgpt.site) · [Public source repository](https://github.com/shi1720/lotline)
+**Shivam Gupta is the project creator.** Shivam set the commercial requirements and quality bar and directed the project development. Substantial Codex assistance supported research, implementation, tests, design iteration and submission drafting. This disclosure does not claim manual work or customer research that did not occur.
 
-The app and repository are public and externally accessible. The deployment uses the rule-based mapping fallback by choice; no live model key is required. Video recording and Devpost submission remain pending. Official residency/registration eligibility and Toronto attendance must still be confirmed before entry.
+The application began from an existing Vinext starter and existing framework components. The Lotline interface, traceability workflow, deterministic engine, synthetic records, tests and documentation were developed during this project. Firebase, Google Cloud and open-source frameworks are pre-existing infrastructure. The original Sites deployment was subsequently migrated to Firebase Hosting, Firebase Authentication, Cloud Run and Firestore.
+
+We are targeting Best Overall and do not claim qualifying Expo, Clerk, Eon or SurrealDB integrations.
+
+## Testing instructions
+
+Open [the live app](https://lotline-trace.web.app). The synthetic sample needs no account or API key.
+
+1. Select **SES-104**. Expect two batches, three customers, 650 confirmed shipped cases and a 250-case calculated balance.
+2. Open a production card to inspect its original CSV row. Review the separate forty-case shipment with a missing batch assignment.
+3. In **Source records**, download a sample CSV and inspect **Import CSV**. Cancel the preview or choose Replace for that record type to avoid appending the sample twice.
+4. Create your own email/password account to save a private workspace, reopen it and record a rehearsal. Export CSV, evidence JSON or the print-ready report.
+
+See the [complete testing guide](https://github.com/shi1720/lotline/blob/main/docs/testing-instructions.md) for persistence, snapshot and edge-case checks. All sample businesses and records are fictional.

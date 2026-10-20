@@ -1,0 +1,11 @@
+rules_version = '2';
+service cloud.firestore {
+  // Deploy this ruleset only to the named lotline database via firebase.json.
+  // All access goes through the authenticated Cloud Run API. The Admin SDK
+  // uses its dedicated IAM identity, so browser clients never read documents.
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

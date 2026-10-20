@@ -2,81 +2,79 @@
 
 **Find the lot. Follow the records. See what is missing.**
 
-Lotline is a recall-rehearsal workspace for small packaged-food manufacturers using spreadsheets. Connect receiving, production and shipment CSVs; inspect a supplier lot's recorded path to finished batches and customers; preserve unresolved records alongside the result.
+[Open Lotline](https://lotline-trace.web.app) · [Watch the demo](https://youtu.be/fXdZMhOwFtw) · [Testing instructions](docs/testing-instructions.md)
 
-Created by **Shivam Gupta** for Build North 2026, with substantial Codex assistance. The application began from a Vinext starter. This is a working build for synthetic demonstrations and evaluation, with explicit production-readiness gates rather than a compliance guarantee.
+Lotline helps an operations or quality lead at a small packaged-food producer rehearse an ingredient trace using records they already keep. Import receiving, production and shipment CSVs, inspect the recorded path from a supplier lot to batches and customers, and keep missing evidence visible alongside the result.
 
-## The two-minute tour
+Created by **Shivam Gupta**, who directed the product, commercial requirements and quality decisions, with substantial Codex assistance in implementation, research, testing and documentation. The initial interface began from a Vinext starter; the current deployment uses Firebase Hosting, Firebase Authentication, Cloud Run and Firestore.
 
-1. Open **Trace workspace**. The synthetic Cedar & Crumb sample is preloaded; no account is needed to explore it.
-2. Trace sesame lot **SES-104**. Its 100 kg receipt connects to batches **CR-201** and **CR-202**: 90 kg recorded ingredient use, 900 cases produced, 650 cases shipped to three customers, and a 250-case calculated balance.
-3. Open a lineage card to inspect the original filename and row reference. CSV imports preserve mapped and unmapped source cells separately from normalized values and reviewed corrections.
-4. Inspect the separate **40-case shipment with no batch assignment**. It remains unresolved; it is not silently included in or excluded from the confirmed 650 cases.
-5. Choose **Export trace** for CSV, complete evidence JSON, or a print-ready report saved as PDF through the browser.
-6. Sign in to save a private workspace and record an immutable rehearsal snapshot under **Drill history**.
+![The live Lotline trace workspace](docs/assets/trace-workspace.png)
 
-All sample companies and records are fictional. The original sample has 2 receiving records, 3 production records and 5 shipments. Its 10 kg ingredient balance and 250-case finished-product balance are arithmetic from recorded movements, not physical counts.
+## Try the complete workflow
 
-## Run locally
+1. Open [lotline-trace.web.app](https://lotline-trace.web.app). The fictional Cedar & Crumb sample works without an account.
+2. Select **SES-104**. Its 100 kg receipt connects to two batches, 90 kg of recorded use, 900 cases produced and 650 cases shipped to three customers. The calculated finished-stock balance is 250 cases.
+3. Open a lineage card. Inspect the source filename, physical CSV row number and original imported cells, separate from normalized values and reviewed corrections.
+4. Review the separate **40-case shipment with no batch assignment**. It remains unresolved and is excluded from confirmed totals. Only original documentation can justify an assignment.
+5. Export the trace as CSV, complete evidence JSON or a print-ready report saved as PDF through the browser.
+6. Optionally create an email/password account. Save a private workspace, reopen it and record a rehearsal snapshot with reviewer notes.
 
-Requires Node.js **22.13 or later**; the test suite was executed with Node **22.16.0**. A clean clone defaults to the portable execution profile.
+All sample records and businesses are synthetic. Calculated stock is output less recorded shipments, not a physical inventory count. Lotline prepares evidence; a qualified person makes incident and food-safety decisions.
 
-```sh
-npm run install:ci
-npm run build
-node --import ./scripts/sites-env.mjs ./node_modules/wrangler/bin/wrangler.js d1 execute DB --local --config dist/server/wrangler.json --persist-to .wrangler/state --file drizzle/0000_brave_the_watchers.sql
-node --import ./scripts/sites-env.mjs ./node_modules/wrangler/bin/wrangler.js d1 execute DB --local --config dist/server/wrangler.json --persist-to .wrangler/state --file drizzle/0001_steady_captain_britain.sql
-npm run dev
-```
+## Development and checks
 
-Apply these migrations once to a fresh local database, in order. Do not replay already-applied migrations. Open the loopback URL printed by the dev server, normally `http://localhost:5173`. The sample works without a database; private save/history needs migrated D1 storage. Local files and database state are ignored by Git.
-
-Portable development simulates sign-in at `/signin-with-chatgpt?return_to=/` with the starter's test identity. This is a local development convenience, not production authentication. `npm start` previews the built Worker locally and does not simulate sign-in or deploy anything. Hosted Sites authentication is platform-owned. Additional inherited runtime details are retained in [starter-runtime.md](docs/starter-runtime.md).
-
-## Verify
+Use Node.js 24 LTS, matching Cloud Run and CI. Install dependencies and run the checks:
 
 ```sh
-node --experimental-strip-types --test tests/trace.test.ts
-node --test tests/api.test.mjs
-node --test tests/api-worker.test.mjs
-npx tsc --noEmit
+npm ci
+npm run typecheck
+npm run lint
+npm test
 npm run build
 ```
 
-The 24 engine/import tests, 15 API tests and 2 Worker integration tests passed: **41 tests total**. TypeScript checking and the production build also passed. API tests execute actual handlers against SQLite with injected platform identity and D1 adapters. They cover authorization, cross-origin rejection, input limits, revision conflicts, snapshots, quotas and model-output validation. AI responses are mocked; no live Anthropic call is claimed. Separate production browser checks verified ChatGPT sign-in, D1 workspace save/reopen, a saved multiline-note drill, downloaded snapshot JSON, CSV import and the mobile layout. Two genuine-account browser isolation has not been tested; injected-identity isolation tests pass. See [verification evidence](docs/verification.md) for scope and limits.
+For local interactive work, run `npm run dev:api` in one terminal and `npm run dev` in another. The frontend runs at `http://localhost:5174` and proxies API requests to port 8080. Set the intended Google Cloud project and use Application Default Credentials for the API.
+
+To reproduce deployment to the configured project, run `npm run deploy:firebase`. The script validates the checked-in public Firebase configuration, runs checks and builds, deploys the Cloud Run API, then deploys Firebase Hosting and rules for the named database. It requires authenticated Google Cloud/Firebase tools and appropriate project permissions.
+
+The frontend uses Vite with `vite.firebase.config.ts`; the Express API entry point is `server/index.ts`. Local API execution requires a Firebase project configuration and Application Default Credentials with access to its named `lotline` Firestore database. Do not commit service-account keys or production credentials. The public Firebase web configuration identifies the project and is not an administrator credential.
+
+The public sample and local CSV trace computation do not require a model key. The deployed mapping endpoint uses deterministic rules. No live LLM inference is required or claimed. Legacy Sites/Worker adapters remain in the repository as prior implementation context; they are not the Firebase production serving path.
+
+Final verification includes 55 passing automated tests, 20 genuine-account live HTTP checks and hosted desktop/mobile import, persistence, rehearsal and export checks. The production dependency audit reported zero findings. See [verification](docs/verification.md) for exact scope and limits. Do not mistake a passing old Worker test for verification of the new Firebase backend. Follow [architecture](docs/architecture.md) and the checked-in deployment configuration for the active deployment path.
 
 ## Architecture
 
-- React 19, TypeScript, Tailwind and Vinext/Vite for the interface and Worker runtime.
-- Pure deterministic lineage engine in `lib/trace.ts`; CSV parser/mapping in `lib/import.ts`.
-- Sites-provided ChatGPT identity; server-scoped workspace ownership.
-- Cloudflare D1 with versioned workspace data, database-generated activity events and immutable drill snapshots.
-- Optional server-side Anthropic column-mapping suggestions. No key is required for rule-based mapping or deterministic trace computation.
+- React 19, TypeScript, Vite and Tailwind for the responsive interface.
+- Firebase Hosting serves the frontend at **lotline-trace.web.app** and routes `/api/**` to an Express API on Cloud Run in **us-central1**.
+- Firebase Authentication handles email/password sign-up, sign-in, password reset and sessions. The API verifies Firebase ID tokens server-side.
+- The named Firestore database **lotline** is in **northamerica-northeast1, Montreal**. API processing runs in us-central1; the database region is not a promise that all processing stays in Canada.
+- Deterministic trace and CSV logic lives in `lib/trace.ts` and `lib/import.ts`.
+- User-scoped saved workspaces use transactional revision checks, server-generated activity and server-computed rehearsal snapshots.
 
-Optional Worker secret: `ANTHROPIC_API_KEY`. Optional setting: `ANTHROPIC_MODEL` (default `claude-haiku-4-5-20251001`). Configure secrets through your hosting environment; never expose them in browser variables or commit them. **Suggest mapping** sends headers and up to three sample rows after an explicit user action; when configured these go to Anthropic. A missing key, provider error, timeout, invalid output or quota limit yields an honestly labeled rules fallback. The selected deployment uses the rule-based fallback; no live provider key is needed or claimed.
+The current API caps a dataset at 700,000 serialized bytes and 5,000 total records. It caps accounts at 20 workspaces and 25 MiB of application-counted saved payloads, and workspaces at 100 rehearsal snapshots. Request and source-file limits may apply sooner. See the [operator guide](docs/operator-guide.md) for details.
 
-Storage is capped at 25 MiB per user across workspace dataset and snapshot payloads, in addition to row/request/workspace limits. A public [privacy notice](https://lotline-recall.sg127977958.chatgpt.site/privacy) describes data handling and remaining hosting limitations.
+## Supported scope
 
-See [architecture](docs/architecture.md), [operator guide](docs/operator-guide.md), [security](SECURITY.md), [commercial thesis](docs/business.md), and [launch checklist](docs/launch-checklist.md).
+The supported relationship is one transformation: **ingredient lot → finished batch → shipment**. Exact identifiers establish links. Missing identities, supplier-lot collisions, incompatible units, conflicting quantities and impossible linked dates produce findings. The engine does not infer missing batch assignments or invent evidence.
 
-## Boundaries
+Rework, intermediates, returns, waste, transfers and unrecorded stock adjustments are not a full inventory ledger. Supplier lot IDs must be unique within a workspace. Chronology checks dates and earliest available receipt evidence, not cumulative inventory allocation or times within a day.
 
-The supported model is one transformation: **ingredient lot → finished batch → shipment**. Rework, intermediates, returns, waste and unrecorded stock adjustments need additional records and review. Use unique supplier lot IDs across the workspace; lot-code collisions across suppliers are not separately namespaced. Do not combine incompatible units. A smaller confirmed list is not proof that other goods were unaffected.
+Before real operational use, validate the workflow with a food-safety practitioner and establish suitable privacy, recovery, retention and operational support. No customer traction, revenue, measured time savings or compliance certification is claimed. [Commercial thesis](docs/business.md) describes explicit hypotheses rather than validated demand.
 
-Lotline does not decide food safety, recall necessity or legal compliance. Before operational customer use, validate data completeness, practitioner suitability, data residency, retention/deletion, backups/recovery and hosting controls. No customer traction or paid usage is claimed.
+## Documentation
 
-## Project publication
-
-[Public repository](https://github.com/shi1720/lotline) · [Live application](https://lotline-recall.sg127977958.chatgpt.site)
-
-The public application and repository have been verified accessible. GitHub Actions passed the clean install, typecheck, all 41 tests, production dependency audit and build for functionality release `8697e0c`. The current release manifest records the exact deployed source revision. Video recording and Devpost submission remain separate steps. Official eligibility requires Canadian residence; see the launch checklist for registration and Toronto attendance gates.
+- [Operator guide](docs/operator-guide.md)
+- [Guest and signed-in testing instructions](docs/testing-instructions.md)
+- [Architecture and trust boundaries](docs/architecture.md)
+- [Verification record](docs/verification.md)
+- [Independent adversarial review](docs/review-round2.md)
+- [Project story](docs/devpost-story-v2.md)
+- [Demo storyboard and narration](docs/demo-storyboard-v2.md)
+- [Security policy](SECURITY.md)
+- [Privacy notice](https://lotline-trace.web.app/privacy)
 
 ## License and attribution
 
 Lotline-authored code is MIT licensed, copyright 2026 Shivam Gupta. Retain third-party notices, including `build/sites-vite-plugin.LICENSE` and `vendor/shadcn-tailwind-4.13.0.LICENSE.md`. Dependencies retain their own licenses. The MIT license does not replace those notices.
 
-## Product view
-
-![Deployed synthetic lot trace](docs/assets/trace-workspace.png)
-
-The screenshot shows synthetic supplier, batch and customer records. The dashed shipment remains unresolved.

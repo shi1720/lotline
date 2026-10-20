@@ -1,75 +1,86 @@
 # Lotline architecture
 
-## Design objective
+## Production path
 
-Turn structured manufacturing records into a reproducible, inspectable rehearsal. Keep uncertain associations separate from confirmed record links. AI may suggest file-column mappings; it does not determine incident scope or create product lineage.
+The public frontend is [lotline-trace.web.app](https://lotline-trace.web.app). Firebase Hosting serves the Vite/React static assets and rewrites `/api/**` to an Express service on Cloud Run in us-central1. Firebase Authentication provides email/password accounts. The API validates bearer ID tokens using the Firebase Admin SDK, including revocation checking, and derives the owner from the verified UID.
+
+The named Firestore database is `lotline` in `northamerica-northeast1`, Montreal. The API runs in us-central1. This architecture has cross-region processing; Montreal storage is not a guarantee of exclusively Canadian processing or a legal suitability determination.
 
 ```mermaid
 flowchart LR
-  C[Receiving / production / shipment CSV] --> I[Browser parser and reviewed mapping]
-  I --> V[Validated workspace dataset]
-  V --> T[Deterministic trace engine]
-  T --> U[Lineage cards / source rows / review queue]
-  U --> X[CSV / evidence JSON / browser PDF]
-  V --> A[Authenticated workspace API]
-  A --> D[(Cloudflare D1)]
-  D --> S[Server-computed drill snapshot]
-  H[Explicit Suggest mapping action] --> M[Authenticated mapping endpoint]
-  M --> R[Rules fallback]
-  M -. configured key .-> L[Anthropic mapping suggestion]
-  L --> G[Strict field/header allowlist]
-  G --> I
+  Browser[React workspace] --> Hosting[Firebase Hosting]
+  Browser --> Auth[Firebase Authentication]
+  Hosting --> API[Cloud Run Express API]
+  API --> Verify[Verify Firebase ID token]
+  Verify --> Store[(Firestore: lotline)]
+  CSV[CSV files] --> Parse[Browser parser and reviewed mapping]
+  Parse --> Trace[Deterministic lineage engine]
+  Trace --> Evidence[Source evidence and review findings]
+  Evidence --> Export[CSV / JSON / browser PDF]
+  API --> Rules[Rule-based mapping suggestions]
 ```
 
-## Source map
+## Implementation map
 
-| Surface | Responsibility |
+| File | Responsibility |
 |---|---|
-| `app/lotline.tsx` | Trace workspace, Source records, review queue, Drill history, evidence modal and exports |
-| `lib/trace.ts` | Pure record-based traversal, quantity calculations and findings |
-| `lib/import.ts` | CSV parsing, canonical column mappings and row conversion |
-| `lib/demo.ts` | Synthetic Cedar & Crumb fixture |
-| `lib/server-validation.ts` | Strict request and dataset schemas |
-| `lib/server-http.ts` | Identity, ownership lookup, JSON limits and mutation-origin boundary |
-| `app/api/workspaces/` | Workspace CRUD, activity and rehearsal snapshots |
-| `app/api/map/route.ts` | Optional provider request, output validation, quota and fallback |
-| `db/schema.ts`, `drizzle/` | Persistent schema and ordered migrations |
-| `tests/trace.test.ts`, `tests/api.test.mjs` | Domain/import cases and real-handler SQLite tests |
+| `app/lotline.tsx` | Trace, records, review, evidence, history and exports |
+| `lib/firebase-client.ts` | Firebase account/session operations and token retrieval |
+| `vite.firebase.config.ts` | Active frontend build and local API proxy |
+| `server/index.ts` | Cloud Run entry point, Admin SDK and named database |
+| `server/app.ts` | Protected Express API, transactions, limits and error responses |
+| `lib/server-validation.ts` | Strict shared dataset and request validation |
+| `lib/trace.ts` | Deterministic traversal, quantity calculations and findings |
+| `lib/import.ts` | CSV parser, canonical mappings and imported rows |
+| `lib/demo.ts` | Fictional Cedar & Crumb records |
+| `tests/trace.test.ts` | Domain/import and adversarial evidence cases |
+| `tests/firebase-api.test.mjs` | Current API behavior tests |
 
-## Data model and trace semantics
+Older `app/api` handlers, Cloudflare D1 schema and Sites runtime files document the earlier deployment. They are not the current Firebase serving path. Their tests remain useful regression context and do not establish Firebase runtime correctness by themselves.
 
-A receipt captures ingredient, supplier lot, supplier, date, quantity/unit and source coordinates. A production row consumes an ingredient lot into a named finished batch and records batch output in its own quantity/unit. A shipment references a finished batch, product, customer, date and quantity/unit. Each row retains an ID, filename and source-row number. CSV-imported rows retain optional sourceData with every mapped and unmapped header/cell; original whitespace and multiline content are retained, with CRLF/CR normalized to LF. Evidence shows Original CSV row separately from normalized/current fields and corrections. A manually corrected shipment also retains originalBatch, a required nonempty correctionNote and an ISO correctedAt timestamp; the interface and exports distinguish the correction from the original assignment.
+## Trace semantics
 
-For SES-104 the sample has 100 kg received; 60 kg feeds CR-201 and 30 kg feeds CR-202. Those batches produce 600 and 300 cases respectively. Three confirmed customer shipment rows account for 650 cases, leaving a calculated 250-case balance. One 40-case Sesame Crunch shipment has no batch and stays in review scope. SES-105 and its CR-203 batch provide an unrelated comparison. Totals never convert ingredient kilograms into cases.
+A receipt identifies ingredient, supplier, lot, received date and quantity/unit. A production row links a consumed ingredient lot to a finished batch, recording output once per consistent batch. A shipment identifies a finished batch, product, customer, shipped date and quantity/unit. Lot and batch identifiers are case-sensitive, with surrounding whitespace removed. Descriptive names and recognized unit aliases are normalized separately.
 
-Only exact recorded lot/batch relationships establish confirmed links. Duplicate/invalid rows, missing assignments, contradictory quantities, unmatched evidence and incompatible units produce findings. The trace cannot infer unrecorded movements. The supported model is one transformation layer; rework, blended intermediate production, returns and waste are not a full inventory ledger. Use unique lot IDs across the workspace; identical supplier lot codes should be normalized to distinct IDs before import.
+Only explicit identifiers establish confirmed links. The engine keeps uncertain shipment records separate. Duplicate/invalid records, missing identities, supplier-local lot collisions, incompatible units, contradictory quantities and impossible linked dates produce findings. Production before every recorded lot receipt and shipment before production block readiness and quantity assurance. Same-day evidence is permitted because dates do not establish time of day. This is not a cumulative inventory ledger.
 
-## Persistence and concurrency
+The synthetic SES-104 fixture has 100 kg received, 90 kg recorded ingredient use, two batches producing 900 cases, 650 confirmed shipped cases to three customers and a 250-case calculated balance. A separate forty-case shipment lacks a batch assignment and stays in review scope. Kilograms are never converted into finished cases.
 
-`workspaces` stores the current dataset JSON, owner ID, name, timestamps and revision. `events` stores database-generated system activity and clearly typed user notes. `drills` stores the selected lot, reviewer notes, full record-set snapshot, computed result and source revision. `ai_usage` stores expiring quota counters keyed by a hash-derived user/window identifier.
+CSV rows retain ID, filename and physical start-row number. `sourceData` retains all mapped and unmapped original cells, including whitespace and multiline content, with line endings normalized to LF. A corrected shipment retains `originalBatch`, a nonempty `correctionNote` and `correctedAt`. Evidence separates original cells from current values.
 
-Workspace edits use revision compare-and-swap; stale updates return 409 instead of silently overwriting another save. Snapshot creation computes its result server-side from saved data; later workspace changes do not alter previous snapshots. Database triggers generate system events for create/update/drill operations. These are application activity records, not independently notarized evidence or an immutable external audit service.
+## Data and concurrency
 
-Aggregate saved payload storage is capped at 25 MiB per user, counting workspace dataset JSON and saved snapshot dataset/result/notes as UTF-8 bytes. Atomic SQL predicates enforce the limit on creation, updates and snapshots; updates subtract the prior dataset size so shrinking or equal-size changes remain allowed at quota. Deletion remains available and frees dependent payload bytes. Tests cover multibyte data, quota exhaustion, tenant separation and shrink/equal-size behavior.
+Data is scoped below `users/{verifiedUid}/workspaces/{workspaceId}`. Each workspace stores its dataset, revision, name, timestamps, application-counted storage bytes and counts. Activity records and drills are subcollections. Account documents track total payload bytes and workspace count.
 
-The account limit is 20 saved workspaces; each workspace supports 5,000 total rows and 100 drill snapshots. The JSON body limit may be reached before the row limit. The UI limits CSV/backup files to 1,000,000 bytes. Workspace deletion cascades to its activity and drills. Hosting backup retention remains a separate production concern.
+Firestore transactions enforce revision checks, account limits and related bookkeeping. Stale saves return 409 instead of overwriting a newer revision. A drill is computed server-side from the saved dataset; it stores the dataset, result, source revision, selected lot and reviewer notes. Payloads are chunked below Firestore document-size limits. Later workspace edits do not rewrite the earlier drill. These are application snapshots, not independently notarized evidence or an external immutable audit service.
 
-## Identity and trust boundaries
+Limits in the current API:
 
-Hosted authentication belongs to Sites. The application uses the injected stable authenticated user ID and checks ownership on every protected resource. It does not trust a client-supplied owner field. Deployment must preserve that platform boundary: do not expose the Worker through an alternate route that accepts spoofed identity headers from arbitrary callers.
+| Limit | Value |
+|---|---:|
+| JSON request | 1 MiB |
+| Serialized workspace dataset | 700,000 bytes |
+| Total records per workspace | 5,000 |
+| Workspaces per account | 20 |
+| Rehearsals per workspace | 100 |
+| Snapshot payload | 1,800,000 bytes |
+| Application-counted saved payload per account | 25 MiB |
+| Workspace activity history | 5,000 events |
 
-Portable development provides a local test identity, restricted by the starter's development integration. It is not included as a production login solution. The standalone built preview does not simulate sign-in.
+Application accounting is not a Firestore billing-byte measurement. Deletes remove accessible workspace data and dependent records; provider logs, backups and Firebase Authentication account deletion have separate lifecycles. Validate those policies before operational use.
 
-Mutation handlers check Origin/Sec-Fetch-Site, JSON content type, streamed body size and schemas. Private API responses disable caching. See SECURITY.md for verified controls and remaining operational gates.
+## Trust boundaries
 
-## Optional AI behavior
+Private endpoints require Firebase bearer tokens. The API constructs user-scoped document paths rather than trusting a client owner field. Browser access to Firestore is not needed for saved workspaces; the server owns persistence. Mutation requests require an allowed Origin and JSON content type where applicable, with streamed/body limits and shared schemas. Private responses disable caching. Production allowed origins must be explicitly configured.
 
-Only a signed-in user's explicit **Suggest mapping** action invokes `/api/map`. Headers and up to three sample rows are supplied, capped by the schema. A configured `ANTHROPIC_API_KEY` enables Anthropic; `ANTHROPIC_MODEL` overrides the default model. The model receives untrusted source text as data and is asked only to select existing headers for canonical fields.
+The public sample requires no account. Unsaved work exists in browser memory and can be exported. Firebase Auth manages the account session; a signed-in session is not permission to access another UID's data. Genuine-account hosted isolation needs a live test in addition to mocked/injected authorization tests.
 
-Strict response shape, canonical-field completeness, known-header checks and duplicate-header rejection constrain accepted output. Timeouts, invalid JSON, provider errors and exhausted quotas return rule-based mappings with a truthful explanation. The feature has a 15-second request timeout and 6/minute + 100/day per-user durable limits. These constraints were exercised with mocked provider responses; a live provider call remains unverified.
+The API also applies per-process, per-UID throttles of 120 requests and 30 writes per minute, returning 429 and Retry-After when exceeded. These counters are not distributed; database storage quotas remain transaction-backed. Deletion uses a persistent intent and bounded retries so a partially deleted workspace can be retried without decrementing account quota twice. A 503 means deletion needs retry rather than confirmation of complete removal.
 
-## Test evidence and deployment status
+## Mapping and models
 
-The current passing suite comprises 24 engine/import tests, 15 API tests and 2 Worker integration tests (41 total). TypeScript checking and production build pass. The Node API suite uses actual route handlers, in-memory SQLite and injected D1/identity adapters; separate Worker tests cover the Worker boundary. Browser and production HTTP checks are listed independently in verification.md. The API identity adapter tests do not constitute two genuine-account hosted browser isolation. No live Anthropic call is claimed.
+The Firebase `/api/map` endpoint returns reviewed rule-based header suggestions. It does not call a live model and never changes source values. The legacy optional Anthropic implementation is not the active production feature. No provider secret is needed for the current deployment, and no live LLM inference is claimed.
 
-The [public repository](https://github.com/shi1720/lotline) and [live application](https://lotline-recall.sg127977958.chatgpt.site) are accessible. Production browser checks verified hosted sign-in, D1 save/reopen, snapshot save/download, CSV import and responsive mobile layout. The first verified deployment corresponds to `0a95369`; follow-up source changes require redeployment. See verification.md for exact boundaries. Follow docs/launch-checklist.md before treating the service as ready for actual customer records.
+## Operational limits
+
+The model supports one ingredient-to-finished-batch layer. It does not reconstruct rework, intermediate production, returns, disposal, cross-contact or unrecorded transfers. Calculated stock is recorded output less recorded shipments. Trace results describe uploaded evidence, not food safety or complete incident scope. See [verification](verification.md) for checks actually executed on the current release.

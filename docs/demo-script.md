@@ -1,122 +1,77 @@
-# Lotline demo recording
+# Lotline product demo, compact version
 
-Use the compact cut unless the final organizer instructions confirm that four minutes are accepted. Devpost currently says up to four minutes; the organizer's Luma listing says two. Record real interactions and actual exports. The scripted business and incident are fictional.
+Target duration: 1 minute 50 seconds to 1 minute 58 seconds. Use a clear, natural neutral US English voice. Speak connected sentences at about 125 to 130 words per minute, without exaggerated pauses or letter-by-letter spelling. Set captions in sentence case with no more than two lines, aligned to the actual narration. Use the real final Firebase URL on the closing frame only after deployment verification.
 
-Full-cut target: **3:35–3:50**, including deliberate screen pauses. Narration has 470 words; rehearse at 140–145 words/minute, then trim dead time. Route: **Trace workspace → evidence modal → Review queue → Source records/import → Export trace → Drill history**. Hosted sign-in, workspace save/reopen and drill snapshot save/download have been verified. Pre-sign in, save the sample workspace and use a genuine saved snapshot in the recording. Keep the recording sample unresolved.
+The spoken script below is about 220 words. All records and businesses shown are synthetic. Record the actual application. Do not animate fake interactions or present a static mockup as a working feature. Pre-sign in and prepare a genuine saved sample workspace and snapshot before recording. Do not change the unresolved sample assignment just for the demo.
 
-## Full cut: read verbatim
+## Scene 1, 0:00 to 0:18
 
-### 0:00–0:28 — The problem
+Visual: trace workspace, synthetic sample banner, selected SES-104 lot. Move to the forty-case unresolved shipment.
 
-Shot: Trace workspace; synthetic banner and Cedar & Crumb name visible.
+Narration:
 
-“Your sesame supplier calls. Lot S E S, one zero four, needs investigation. You're a small granola maker. You have the receiving spreadsheet, the production log, and the customer shipments. But can you connect them, and can you tell where the evidence stops?
+Your supplier flags a sesame lot. Which products used it? Where did they ship? And which records are missing? For a small food maker, those answers can live in three different spreadsheets. Lotline brings them into one reviewable trace.
 
-I'm Shivam Gupta, and this is Lotline. Find the lot. Follow the records. See what is missing.”
+## Scene 2, 0:18 to 0:36
 
-### 0:28–1:12 — Follow the recorded scope
+Visual: receipt, two production batch cards, three customers, recorded shipment and calculated-stock metrics.
 
-Shot: SES-104 selector, four metrics, supplier/batch/customer lineage cards. Point to CR-201 and CR-202.
+Narration:
 
-“This demonstration uses Cedar and Crumb, a fictional food maker, and entirely synthetic records. Nothing here is a real recall.
+This example uses fictional companies and synthetic records. One ingredient lot connects to two batches producing nine hundred cases. Six hundred fifty cases shipped to three customers. The calculated balance is two hundred fifty cases, based on these records.
 
-Our sesame lot has a one-hundred-kilogram receipt. Sixty kilograms went into batch C R, two zero one; thirty went into C R, two zero two. Those batches produced nine hundred cases of Sesame Crunch. The records connect six hundred and fifty shipped cases to three customers, leaving a calculated balance of two hundred and fifty cases.
+## Scene 3, 0:36 to 0:55
 
-These are calculations from supplied records, not a physical stock count.”
+Visual: open a production evidence card. Show original CSV row, filename and physical row number. Close and open review findings.
 
-### 1:12–1:42 — Inspect a source
+Narration:
 
-Shot: click receiving or production lineage card; source-modal filename/row visible. Then close.
+Every connection opens its source evidence, including the original imported row. Exact lot and batch identifiers drive the calculation. Here, forty additional cases have no batch assignment. They stay unresolved. Lotline does not guess where they belong.
 
-“Open a card and inspect the source row. Here are the imported values, the filename, and the row reference behind this connection.
+## Scene 4, 0:55 to 1:14
 
-The trace follows exact recorded lot and batch identifiers. A language model does not invent these links. Deterministic rules make the result repeatable, while source evidence lets another person review how we got here.”
+Visual: Source records, select a sample CSV in the actual import dialog, review mapped headers and row preview. Cancel without appending duplicate records.
 
-### 1:42–2:20 — The missing link
+Narration:
 
-Shot: open review findings; inspect unresolved shipment, `shipments.csv`, row 5. Show assignment selector but do not guess or confirm a change.
+Import receiving, production and shipping CSV files. Review the suggested column mapping before committing anything. This version uses rules, so the core workflow needs no model key. Missing identifiers and incompatible quantities remain visible for investigation.
 
-“Now look at this shipment: forty cases to Cedar Market, with no batch assignment. Those forty cases remain separate from the confirmed shipment total. They could widen the scope, so Lotline keeps them visible for review.
+## Scene 5, 1:14 to 1:34
 
-An operator can assign a batch only after checking original documentation. If we cannot verify it, we leave it unresolved. A clean-looking diagram is less valuable than an honest account of what we do not know.”
+Visual: saved workspace state, actual saved rehearsal detail, snapshot download. Show export menu and download trace CSV. Use real artifacts if opening a report.
 
-### 2:20–2:52 — Bring existing files
+Narration:
 
-Shot: Source records, sample downloads; open import dialog with a rehearsed sample CSV and mapping preview. Do not commit an accidental duplicate append.
+Save a private workspace, return to it later, and record a rehearsal snapshot. Export the linked records and open questions as CSV, complete evidence JSON, or a printable report. Another reviewer can follow the same evidence.
 
-“Source records shows the receiving, production, and shipment tables. To bring existing files, choose a record type, upload a C S V, and review the column mapping before importing.
+## Scene 6, 1:34 to 1:55
 
-The mapping endpoint can optionally use A I, with explicit disclosure before sending headers and sample rows. This deployment deliberately uses the rule-based fallback, so no live model key is needed. The lineage stays deterministic.”
+Visual: return to trace overview, then closing title with verified final live URL. Keep the calculated-stock and record-scope labels readable.
 
-### 2:52–3:20 — Keep the evidence
+Narration:
 
-Shot: close import; Export trace; show CSV/JSON options and browser PDF preview. Show Drill history with an actual saved snapshot.
+Lotline helps teams prepare evidence. People still decide incident scope and food safety. Start with the records you already have. Find the lot. Follow the records. See what is missing.
 
-“Export trace includes confirmed links and unresolved records. Download the C S V, the complete evidence J S O N, or use the print-ready report to save a P D F.
+## YouTube title
 
-A signed-in operator can save a workspace and record a rehearsal snapshot, preserving the data and open questions at that moment. Later edits do not rewrite that snapshot.”
+Lotline | Trace a Food Ingredient Lot and Find Missing Records
 
-### 3:20–3:48 — Boundaries and business
+## YouTube description
 
-Shot: return to main trace, then closing card with verified live/repository addresses only.
+A supplier flags an ingredient lot. Can your receiving, production and shipping records show where it went?
 
-“Lotline prepares evidence. A qualified person decides whether food is safe and what action is necessary. This version supports one ingredient-to-finished-batch transformation.
+Lotline connects CSV records into an inspectable ingredient-to-batch-to-customer trace. This demo shows source evidence, a missing shipment assignment, reviewed column mapping, saved workspaces, rehearsal snapshots and evidence exports.
 
-Our first buyer is a small manufacturer using spreadsheets. A lightweight subscription for recurring checks and drills is a commercial hypothesis, still to be validated with customers.
+The example uses fictional businesses and synthetic records. Calculated stock reflects supplied records, not a physical count. Lotline prepares evidence for a responsible reviewer and does not determine food safety or incident scope. This version supports one ingredient-to-finished-batch transformation and uses rule-based mapping.
 
-We're building toward a practical promise: make the records usable, the evidence inspectable, and the missing links impossible to miss.”
+Try Lotline: https://lotline-trace.web.app
+Source code: https://github.com/shi1720/lotline
+Built by Shivam Gupta.
 
-## Compact cut: approximately 1:50–2:00
+## Recording acceptance
 
-### 0:00–0:20
-
-Shot: main trace and synthetic sample banner.
-
-“Your sesame supplier flags lot S E S, one zero four. You're a small granola maker. Which batches used it, where did they ship, and what can your records prove? I'm Shivam Gupta. This is Lotline.”
-
-### 0:20–0:45
-
-Shot: CR-201/CR-202, three customers, calculated balance.
-
-“This is Cedar and Crumb, a fictional maker with synthetic data. Our lot connects to two batches producing nine hundred cases. Six hundred and fifty cases are recorded as shipped to three customers. Two hundred and fifty remain as a calculated balance. Exact identifiers and deterministic rules create the trace.”
-
-### 0:45–1:13
-
-Shot: source row, then unresolved 40-case row and assignment selector.
-
-“Open a card to inspect its source filename and row. Now here is a separate forty-case shipment with no batch assignment. Lotline keeps it unresolved instead of guessing. Only original documentation can justify assigning it. This is evidence preparation: a qualified person decides incident scope and food safety.”
-
-### 1:13–1:35
-
-Shot: Source records, import mapping, export choices.
-
-“Import receiving, production and shipment C S V files with reviewed column mappings. This deployment uses rule-based mapping suggestions; the trace stays deterministic. Export confirmed links and unresolved records as C S V, complete J S O N, or a print-ready P D F.”
-
-### 1:35–1:57
-
-Shot: actual saved history, then closing overview.
-
-“Signed-in workspaces support saved records and rehearsal snapshots. We're starting with small manufacturers who already use spreadsheets. Demand and pricing still need validation. Lotline: find the lot, follow the records, see what is missing.”
-
-## Exact fixture reference
-
-| Evidence | Record |
-|---|---|
-| SES-104 receipt | `receipts.csv:2` — 100 kg |
-| CR-201 production | `production.csv:2` — 60 kg input, 600 cases output |
-| CR-202 production | `production.csv:3` — 30 kg input, 300 cases output |
-| Cedar Market | `shipments.csv:2` — 300 cases, CR-201 |
-| Harbour Foods | `shipments.csv:3` — 150 cases, CR-201 |
-| Maple Co-op | `shipments.csv:4` — 200 cases, CR-202 |
-| Unresolved Cedar Market shipment | `shipments.csv:5` — 40 cases, no batch |
-| Comparison lot | SES-105 → CR-203, unrelated confirmed shipment |
-
-## Recording preparation
-
-- Use a 1920 × 1080 browser recording and readable zoom. Enable do-not-disturb; hide private tabs and account data.
-- Keep the sample unresolved. Reset it through the workspace switcher if any rehearsal changed the batch assignment.
-- The sample is 2 receipts + 3 production rows + 5 shipments. Do not claim all 5 shipment rows are tied to SES-104.
-- Do not imply that Anthropic was called unless a configured live call has been verified. The initial tests use mocked responses.
-- Rehearse sign-in, save and snapshot retrieval on the final deployed version before recording. Use the genuinely saved records.
-- Keep all uncertainty and drill labels visible. No fabricated users, testimonials, performance benchmarks or compliance claims.
-- Video must be publicly viewable without login. Verify duration and playback from an unauthenticated window.
+- Capture only features confirmed in the final hosted build.
+- Hide passwords, account identifiers, access tokens and browser developer tools.
+- Keep subtitles in sync with sentence boundaries and avoid covering metric cards or original evidence.
+- Check the rendered export, voiceover, captions and mobile playback before public upload.
+- Make the video publicly playable without authentication. Verify it from a separate browser session.

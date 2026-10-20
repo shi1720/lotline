@@ -20,7 +20,7 @@ Use **25 October 2026, 11:59 PM Eastern**, or **26 October, 9:29 AM India Standa
 
 ## Keys and account access
 
-- [ ] Verify deployed Sites authentication and user-owned persistence with two genuine accounts. No Clerk key is necessary for Sites-provided authentication; no Clerk prize claim is made.
+- [ ] Verify deployed Firebase Authentication and user-owned persistence with two genuine accounts. No Clerk key is necessary for Firebase Authentication; no Clerk prize claim is made.
 - [x] Choose rule-based mapping fallback for this deployment. No live model key is needed or claimed.
 - [ ] Optional future integration: configure a server-side Anthropic API key if live AI column mapping becomes part of a later build. Create it in the Anthropic Console, enable billing or verified credits, set a small spending cap, and enter it through the hosting service's secret configuration. Never commit it or put it in a browser bundle. Do not claim a successful provider call until tested.
 - [ ] Confirm production hosting entitlements, database quotas, storage region and backup options. Free access for this build does not prove a production SLA.
@@ -30,8 +30,8 @@ Use **25 October 2026, 11:59 PM Eastern**, or **26 October, 9:29 AM India Standa
 
 ## Working application verification
 
-- [x] Public deployed application and sample load: https://lotline-recall.sg127977958.chatgpt.site.
-- [x] Production ChatGPT sign-in, workspace save to D1, reload and saved-workspace reopening exercised.
+- [ ] Verify final Firebase application and sample load: https://lotline-trace.web.app.
+- [ ] Verify Firebase email/password sign-in, workspace save to Firestore, reload and saved-workspace reopening exercised.
 - [ ] Complete logout and two genuine-account browser isolation. Injected-identity API ownership tests pass; forged identity headers on anonymous production requests returned 401.
 - [x] Public sample is synthetic and uses sesame SES-104 consistently.
 - [ ] Import errors are understandable; unknown columns and invalid rows do not silently disappear.
@@ -43,10 +43,10 @@ Use **25 October 2026, 11:59 PM Eastern**, or **26 October, 9:29 AM India Standa
 - [ ] Optional AI endpoint has authentication, input limits, timeout/error fallback and no exposed secret. Verify it sends only the intended fields.
 - [x] Inspect 390 × 844 responsive layout and mobile navigation.
 - [ ] Complete broader keyboard-navigation and contrast review.
-- [x] Record 24 engine/import +15 API +2 Worker tests, passing type/build checks and known limits in verification.md.
+- [ ] Record the final trace/import and Firebase API test totals, passing type/build checks and known limits in verification.md.
 - [x] Production receiving-CSV import in Replace mode and saved snapshot JSON download inspected, including dataset and result.
 - [x] Correction flow preserves original assignment and requires a nonempty note before confirming; imported CSV sourceData retains mapped/unmapped cells separately.
-- [x] Test aggregate 25 MiB per-user saved payload quota, including multibyte records, tenant separation, shrinking/equal-size updates and deletion freeing bytes.
+- [x] Test aggregate 25 MiB per-user application payload quota, including multibyte records, tenant separation, shrinking/equal-size updates and deletion freeing bytes.
 - [x] Add public privacy notice describing data handling and hosting limitations.
 - [ ] Confirm final deployment contains these last source changes; review dependency caveat in SECURITY.md.
 - [ ] Publish final source fixes and repeat production smoke checks; the first verified deployment corresponds to 0a95369.

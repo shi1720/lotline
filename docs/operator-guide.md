@@ -1,67 +1,67 @@
 # Lotline operator guide
 
-## Start with the synthetic rehearsal
+Open [Lotline](https://lotline-trace.web.app). The fictional Cedar & Crumb sample is available without signing in. Use synthetic or de-identified test files while assessing the workflow.
 
-Open **Trace workspace**. Cedar & Crumb is fictional, and the page labels the sample as synthetic. The ingredient selector starts at **SES-104 — Sesame seeds**.
+## Read the sample trace
 
-The confirmed record trail connects Northfield Ingredients' 100 kg receipt to CR-201 and CR-202, two Sesame Crunch batches. Their recorded inputs total 90 kg; recorded output is 900 cases. Confirmed shipments total 650 cases to Cedar Market, Harbour Foods and Maple Co-op. The calculated finished balance is 250 cases. The missing-batch 40-case shipment is a separate unresolved question, not an adjustment silently applied to those totals.
+Select **SES-104** in Trace workspace. A 100 kg ingredient receipt connects to CR-201 and CR-202, which use 90 kg and produce 900 cases. Confirmed shipment records total 650 cases to three customers. The calculated finished-stock balance is 250 cases. A separate forty-case shipment has no batch code and remains unresolved, excluded from confirmed totals.
 
-Click a supplier, production or customer card to open the evidence dialog. It shows source filenames and row numbers, with Original CSV row displayed separately from normalized/current fields and any reviewed correction. CSV imports preserve mapped and unmapped cells, including whitespace and multiline content; line endings are normalized to LF. Close it to return to the trace. Use **Source records** to inspect receiving, production and shipment tables and download the three sample CSVs.
+Open a supplier, production or customer card to inspect its source evidence. Original CSV cells appear separately from normalized/current fields and reviewed corrections. The filename and physical start-row number identify the imported location. Mapped and unmapped source cells are retained, including whitespace and multiline content, with line endings normalized to LF.
 
-## Import your own structured records
+## Import structured records
 
-Begin with de-identified test copies. Lotline has not been reviewed for real customer operational use; confirm privacy and hosting suitability before uploading confidential data.
+1. Choose **Use your own records** or create a new workspace. Export unsaved work before discarding changes.
+2. Open Source records and choose Receiving, Production or Shipments.
+3. Upload a UTF-8 CSV under the displayed file-size limit. Export Excel or Google Sheets files to CSV first; direct XLSX import is not supported.
+4. Review the preview and map every expected field to a source column. Download a sample for the canonical structure. Rule-based suggestions propose columns, not record values.
+5. Choose Append or Replace for that record type. Reimporting the same file in Append mode triggers duplicate protection. Use Replace deliberately when replacing that whole record type.
+6. Confirm the import. Errors leave the dataset unchanged and identify the offending row/field.
+7. Repeat for the other record types. Return to the trace and select the lot.
 
-1. Choose **Use your own records** to start an empty dataset, or open the workspace switcher and choose **New workspace**. Unsaved changes may be discarded after confirmation.
-2. In **Connect your source records**, select Receiving, Production or Shipments.
-3. Choose a UTF-8 CSV smaller than 1 MB. Excel/Google Sheets files must first be exported as CSV; direct XLSX upload is not implemented.
-4. Inspect the preview and map each expected field to an actual source column. Download a sample for the exact structure. Columns must be uniquely named. All expected fields require a mapped source column, although missing lot/batch cell values remain representable for review.
-5. Optional: **Suggest mapping** uses the authenticated mapping endpoint. Without a configured model key it honestly returns rules. With a key it sends headers and up to three sample rows to Anthropic. Review each proposed field; the model does not alter record values.
-6. Choose Append or Replace for that record type. Select **Review complete — import … rows**. Invalid imports display row/field errors and leave the dataset unchanged.
-7. Repeat for the other two record types. Return to **Trace workspace** and choose the lot.
+Use valid ISO calendar dates, finite positive numbers and consistent units. Ingredient/supplier/product identities must be present. Missing lot/batch cells remain representable for investigation, rather than being invented. Give suppliers' lot codes unique workspace identifiers if their local codes collide. A sample with no confirmed matches does not establish that nothing was exposed.
 
-Use real ISO dates such as `2026-10-15`, finite positive numbers, and consistent units. Give suppliers' lots and finished batches distinct workspace-wide identifiers; normalize collisions before importing. Preserve missing values as missing instead of inventing identifiers.
+The current deployment uses rule-based mapping. No live LLM call, provider key or external model transmission is needed. Every mapping remains the user's responsibility to review.
 
-The dataset limit is 5,000 total records, with a separate 1 MiB server JSON limit. File size or request size may constrain usable rows sooner. Saved workspace/snapshot payloads also share a 25 MiB per-account UTF-8 storage cap. At quota, shrinking or equal-size dataset updates and deletion remain available; a clear 409 error prevents writes that would exceed the limit. Error handling protects record integrity but does not determine whether your input is complete.
+## Review findings and corrections
 
-## Review a missing shipment assignment
+Review missing lineage, collisions, incompatible units, duplicate rows, negative balances and impossible linked dates. These findings can disable readiness or quantity assurance. Production before every available receipt and shipments before their recorded production require investigation. Same-day dates do not identify order within the day, and the app does not implement cumulative inventory allocation.
 
-Open the trace's review findings, then inspect the original shipment row. The sample's unresolved row is `shipments.csv`, row 5: 40 cases of Sesame Crunch to Cedar Market, with no batch recorded.
-
-If independent original documentation establishes the correct batch, choose it under **Assign only after checking your original record**, enter a nonempty correction note and confirm. Confirmation remains disabled until a note is supplied. The trace recalculates; save the workspace to retain that revision. If the assignment cannot be verified, leave it unresolved. The record remains in exports for review. Never select a batch merely to make the warning disappear.
-
-The correction preserves originalBatch, correctionNote and correctedAt. Evidence and exports distinguish the reviewed assignment from the original imported batch field. Source coordinates still identify the import location; retain the supporting original documentation for the correction.
+A batch assignment may be added only after original documentation establishes the correct batch. Enter a nonempty correction note explaining the supporting evidence. Confirmation stays disabled until a note exists. The app preserves originalBatch, correctionNote and correctedAt. Save the workspace to retain the revision. If the evidence is unavailable, leave the assignment unresolved.
 
 ## Save and return
 
-**Save workspace** starts ChatGPT sign-in if necessary. A temporary sessionStorage draft protects unsaved records through full-page sign-in. On return the draft is validated, restored and removed from sessionStorage. Download an unsaved JSON backup as an additional safeguard. Restoring a backup opens a new workspace and clears the previous active workspace/history association. The public sample does not require login.
+Choose sign-in to create or access a Firebase email/password account. Save the workspace with a recognizable name. The workspace picker lets you reopen, rename or delete your saved workspaces. The public sample remains available to guests. Account sessions are managed by Firebase Authentication.
 
-After signing in, name and save the workspace. Open the workspace switcher to reopen saved datasets, rename/save the current one, load a sample or delete a workspace. Deletion removes the workspace and its drill/activity records from the application database. Backup retention is governed separately by hosting operations.
+Saves use revisions. If another session has changed the saved workspace, the API returns a conflict instead of silently overwriting it. Export your unsaved JSON, reopen the saved revision and reconcile deliberately. Restoring a JSON backup opens a new workspace rather than borrowing a prior workspace's history.
 
-Concurrent changes are revision-checked. If a stale-save conflict occurs, export the unsaved JSON, reopen the saved workspace and reconcile changes deliberately. Do not repeatedly overwrite work from another browser.
+Private records are scoped server-side to the verified Firebase user. Sign out when finished on a shared device. Unsaved work can be exported; do not rely on browser memory as durable storage.
 
-## Record a drill
+## Record a rehearsal
 
-Save the dataset before creating a rehearsal. Open **Drill history**, choose **New rehearsal**, and add reviewer notes explaining what was checked, what remains missing, and who owns follow-up. **Save drill snapshot** stores the selected lot's computed trace with its source record set and revision.
+Save the workspace first. Open Drill history, create a rehearsal and add reviewer notes explaining what was checked and what remains unresolved. The server computes a snapshot from the saved dataset and records its lot and source revision.
 
-Open **Drill history** to inspect recorded rehearsals and **Download snapshot** for the stored JSON. Later workspace edits do not rewrite earlier snapshots. The history is a record of the exercise, not a certificate of readiness. The limit is 100 snapshots per workspace.
+Open a stored rehearsal and download its complete snapshot JSON. Later workspace changes do not rewrite that earlier snapshot. A rehearsal history is evidence of the exercise, not a certificate of incident readiness.
 
-## Export the evidence
+## Export evidence
 
-From **Export trace**, choose:
-
-| Option | Result |
+| Export | Contents |
 |---|---|
-| Trace & distribution CSV | Receiving/production links, confirmed shipments, source coordinates and unresolved shipments |
+| Trace and distribution CSV | Confirmed record links, source coordinates, corrections and unresolved shipment rows |
 | Complete evidence JSON | Dataset, calculated trace, findings and export metadata |
-| Print-ready review report / PDF | Opens browser print; choose Save as PDF |
+| Print-ready report | Browser print view; choose Save as PDF |
 
-Review the print preview before sharing. Keep drill/synthetic labels and unresolved scope visible. These files prepare evidence for your responsible team; they do not notify customers, contact CFIA, initiate a recall or send emails.
+Inspect print layout before sharing. Keep synthetic/drill labels and unresolved scope visible. Exports do not send customer messages, notify authorities or initiate a recall.
 
-## Operational boundaries
+## Storage and deletion
 
-This version supports one ingredient-to-finished-batch transformation layer. Stock balance means output less recorded shipments. It excludes unrecorded waste, returns, transfers and rework. An empty or clean result does not prove absence of exposure. Lotline does not decide whether food is safe, whether recall is necessary or whether legal obligations are met.
+The API limits each dataset to 700,000 serialized bytes and 5,000 total records. An account supports 20 workspaces and 25 MiB of application-counted saved data, snapshots, notes and activity. Each workspace supports 100 snapshots, 500 reviewer notes and 5,000 activity events. A snapshot payload can be up to 1,800,000 bytes. File/request limits may apply sooner.
 
-Consult your qualified food-safety team and actual incident procedures for real events. Read the official [CFIA guidance](https://inspection.canada.ca/en/food-safety-industry/toolkit-food-businesses/traceability) for context; applicability varies by operation.
+Delete test workspaces to remove their accessible records and history. Workspace deletion does not delete the Firebase Authentication account. Hosting backups and logs have separate retention policies. Read the [privacy notice](https://lotline-trace.web.app/privacy) before supplying sensitive information.
 
-Read the public [privacy notice](https://lotline-recall.sg127977958.chatgpt.site/privacy) for retention, deletion, temporary drafts, fonts and hosting limitations. No guaranteed storage region or backup deletion promise is implied.
+The named Firestore database is in Montreal; Cloud Run processes API requests in us-central1. Do not interpret the database location as a guarantee of exclusively Canadian processing.
+
+## Supported boundaries
+
+The current model supports one ingredient-to-finished-batch transformation. It does not reconstruct rework, intermediate products, returns, transfers, disposal or cross-contact. Calculated stock is output less recorded shipments, not a physical count. The trace covers supplied records and cannot establish that omitted records do not exist.
+
+Lotline prepares evidence. A responsible qualified person determines food safety, incident scope and operational action. Practitioner acceptance, suitable data handling and recovery/support procedures remain prerequisites for real operational use.

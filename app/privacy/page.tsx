@@ -1,94 +1,119 @@
-import Link from "next/link";
-export const metadata = { title: "Privacy & data handling — Lotline" };
+/* eslint-disable @next/next/no-html-link-for-pages -- Shared with the standalone Firebase client. */
+export const metadata = { title: "Privacy & data handling | Lotline" };
 export default function Privacy() {
   return (
     <main className="policy-page">
-      <Link className="brand" href="/">
+      <a className="brand" href="/" aria-label="Lotline workspace">
         lotline.
-      </Link>
+      </a>
       <span className="eyebrow">PRIVACY & DATA HANDLING · 20 OCTOBER 2026</span>
       <h1>
-        Your records stay
-        <br />
-        under your control.
+        Your records.
+        <br />A clear account of their care.
       </h1>
       <p>
-        Lotline is an evaluation product created by Shivam Gupta. This page
-        explains the current build’s behavior so you can decide what to upload.
+        Lotline helps food businesses trace ingredient lots through production
+        and shipments. This page explains the information this deployment uses
+        and the controls available to you.
       </p>
-      <h2>What this application stores</h2>
+      <h2>What you choose to save</h2>
       <p>
-        When you sign in and save a workspace, Lotline stores its name, imported
-        business records, source filenames and row numbers, and a site-specific
-        account identifier in Cloudflare D1. Records may include supplier names
-        and customer business contact details. Saving a rehearsal also stores a
-        snapshot of the records, calculated trace, reviewer notes, and time.
-        Automatic activity entries record workspace changes.
+        Saved workspaces include the workspace name, imported business records,
+        original CSV row values, source filenames and row numbers, and your
+        Firebase account identifier. Records can contain supplier names and
+        customer business contact details. Rehearsals preserve a snapshot of the
+        records, trace results, reviewer notes, and time. Workspace activity
+        includes saved changes and any correction notes you provide.
       </p>
-      <h2>The public sample</h2>
+      <h2>Try the sample without an account</h2>
       <p>
-        The default workspace contains fictional companies and synthetic
-        records. Anonymous imports and edits stay in memory in the current
-        browser page. They do not become saved server records until you sign in
-        and save. Download a backup before leaving the page.
+        The sample uses fictional businesses and synthetic records. Imports and
+        edits remain in memory in the current browser page until you sign in and
+        save. Refreshing or closing the page can discard unsaved work. Download
+        a workspace backup to keep a copy. The synthetic sample is publicly
+        accessible; your saved workspaces require your account.
       </p>
-      <h2>Signing in</h2>
+      <h2>Your account</h2>
       <p>
-        ChatGPT provides sign-in and shares basic profile information with the
-        application. Lotline uses the site-specific account identifier to
-        restrict access to saved workspaces. It does not receive your chat
-        history. A temporary browser session draft preserves unsaved records
-        through sign-in. The application validates and removes that draft when
-        it restores your work.
+        Firebase Authentication handles email and password sign-in, password
+        resets, and session persistence. Lotline uses your name, email, and
+        Firebase account identifier to display your account and restrict access
+        to saved records. Passwords are handled by Firebase Authentication. Your
+        browser keeps the session information needed to keep you signed in.
+        Signing out clears the current workspace from the screen and returns to
+        the synthetic sample.
       </p>
-      <h2>Optional AI mapping</h2>
+      <h2>Column mapping and trace calculations</h2>
       <p>
-        The active deployment uses rule-based mapping and does not send records
-        to Anthropic. If an operator configures the optional Claude adapter in a
-        later deployment, clicking Suggest mapping sends the column headers and
-        up to three sample rows to Anthropic. The import dialog explains this
-        before the action. No model runs automatically, and model output cannot
-        change record values.
+        This deployment uses rule-based column suggestions and deterministic
+        trace calculations. It does not send records to an AI model. Matching
+        columns does not change imported source values. When you are signed in
+        and request mapping suggestions, column headers and up to three sample
+        rows are processed by the application server. Review every mapping
+        before importing.
       </p>
-      <h2>Export, retention, and deletion</h2>
+      <h2>Storage and processing</h2>
       <p>
-        Saved records remain until you delete their workspace. Deleting a
-        workspace removes its datasets, drill snapshots, and activity history
-        from the application database. Downloads and copies you retain remain
-        under your control. Platform backups, authentication records, and
-        infrastructure logs follow the hosting providers’ policies. This build
-        has no independently verified backup-retention guarantee.
+        Firebase Hosting serves the application. Firestore stores workspace data
+        in the Montreal region. The application server processes requests on
+        Google Cloud Run in the us-central1 region in the United States.
+        Firebase Authentication is a global service. This application does not
+        offer Canadian-only processing. Google infrastructure may process
+        operational and security logs under its service policies. The interface
+        loads fonts from Google Fonts; those font requests do not include
+        workspace records.
       </p>
-      <h2>Where data is processed</h2>
+      <h2>Exports and deletion</h2>
       <p>
-        The application runs on Sites and Cloudflare infrastructure. This
-        deployment does not guarantee Canadian-only storage or processing.
-        Sign-in is handled by OpenAI. The interface downloads fonts from Google
-        Fonts; no workspace records are included in those font requests. Check
-        your organization’s requirements before uploading confidential records.
+        You can download workspace backups, trace reports, source evidence, and
+        saved rehearsal snapshots. Deleting a workspace removes its records,
+        saved rehearsals, and workspace activity from the application database.
+        Copies and downloads you keep remain under your control. Deleting a
+        workspace does not delete your Firebase account. Provider backups and
+        infrastructure logs are subject to Google&apos;s retention policies;
+        this application does not promise immediate removal from those systems.
       </p>
-      <h2>Practical limits</h2>
+      <h2>What belongs in a workspace</h2>
       <p>
-        Use synthetic or approved evaluation records. Avoid consumer personal
-        information, health information, passwords, or payment data. This build
-        supports one ingredient-to-finished-batch transformation and does not
-        replace incident procedures or qualified review. It has no payment
-        collection, advertising tracker, or automated customer notification
-        feature.
+        Upload business records you are authorized to use. Limit contact details
+        to those needed for your business trace. Keep consumer personal
+        information, health information, passwords, and payment details out of
+        imported files. Check your organization&apos;s data requirements before
+        saving confidential records.
       </p>
-      <h2>Contact and issues</h2>
+      <h2>Responsible use</h2>
       <p>
-        For product questions, use the{" "}
-        <a href="https://github.com/shi1720/lotline/issues">
+        Lotline follows the records you supply. Your responsible team must
+        verify completeness, resolve missing links, and decide what action to
+        take. Calculated balances are not a physical stock count. The
+        application does not send messages to customers, determine food safety,
+        or certify legal compliance.
+      </p>
+      <h2>Questions and security reports</h2>
+      <p>
+        For general product questions, use the{" "}
+        <a
+          href="https://github.com/shi1720/lotline/issues"
+          target="_blank"
+          rel="noreferrer"
+        >
           project issue tracker
         </a>
-        . Do not post private records or credentials there. For a security
-        concern, follow the repository’s SECURITY.md and keep sensitive details
-        out of public issues.
+        . Do not post private records, passwords, or credentials in a public
+        issue. For security concerns, follow the instructions in the
+        repository&apos;s{" "}
+        <a
+          href="https://github.com/shi1720/lotline/blob/main/SECURITY.md"
+          target="_blank"
+          rel="noreferrer"
+        >
+          security policy
+        </a>
+        .
       </p>
-      <Link className="btn dark" href="/">
+      <a className="btn dark" href="/">
         Return to the workspace
-      </Link>
+      </a>
     </main>
   );
 }

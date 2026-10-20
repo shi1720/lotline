@@ -1,45 +1,45 @@
-# Lotline: candid rubric review
+# Lotline candid rubric review
 
-This is an internal critical review, not a score from Build North judges. Scores are provisional internal assessments after source review, 41 passing tests, successful type/build checks and recorded production browser verification. The hosted flow includes sign-in, D1 save/reopen, saved snapshot export, CSV import and mobile layout checks; see verification.md for limits. A polished narrative cannot substitute for deployment evidence.
+This is an internal product review, not a score from the official judges. Scores are provisional estimates on a five-point scale. A working demonstration is evidence of execution; it is not evidence of customer demand. The final Firebase verification includes 55 automated tests, 20 genuine-account live HTTP checks and an actual browser save/import/history/export/sign-out walkthrough. See verification.md for scope and remaining gaps.
 
-| Criterion | Provisional / 5 | Evidence and concern | Highest-value next verification |
+| Criterion | Provisional score | Evidence and concern | Best next improvement |
 |---|---:|---|---|
-| Innovation | 3.5 | The evidence/gap-first workflow is focused and comprehensible. Traceability graphs and recall reports already exist in Katana/FoodDocs. Differentiation remains a hypothesis. | Show import of existing records and an ambiguous lot that stays unresolved instead of a false complete result. |
-| Real-world impact | 3 | A specific operator and recurring workflow are supported by primary guidance. No interviews, usage, payment or measured savings exist. | Observe a practitioner doing a drill and compare the exported evidence with what they actually need. |
-| UI and design | 4 provisional | Desktop workflow, receiving import and 390 × 844 responsive layout were verified. No uninstructed target-user usability session has been observed. | Observe an operator selecting a lot, inspecting evidence and exporting without coaching. |
-| Tech and deployment | 4 | 41 tests and type/build checks pass. Public deployment, hosted sign-in, D1 save/reopen and snapshot JSON export were exercised. Two genuine-account browser isolation and remote CI remain open. | Publish final fixes, rerun smoke checks and add a two-account browser test plus CI. |
-| Security and ethics | 3.5 pending operational review | Local tests cover server authorization, mutation boundaries, strict validation, quotas and mocked model-output constraints. Synthetic fixtures and visible uncertainty help; hosting controls and data obligations remain gates. | Validate backup recovery, data location and two genuine-account isolation; retain the implemented distinction between original and manually reviewed assignments. |
+| Innovation | 3.5 | Evidence-first review and visible missing lineage create a focused story. Traceability itself is established; the differentiation is a hypothesis. | Show the unresolved forty-case shipment and refusal to guess before describing technology. |
+| Real-world impact | 3 | A specific quality/operations lead and existing-files workflow are clear. No interviews, payments or measured savings are established. | Observe a practitioner completing a rehearsal with permissioned records. |
+| UI and design | 4 provisional | Trace, original evidence, review queue and actual import/export form a coherent task. Final desktop and 390 by 844 mobile views were exercised and captured; the navigation drawer hides background content from the accessibility tree and focuses its close control. Broader keyboard/device checks remain separate. No target-user usability session is established. | Complete broader keyboard/device acceptance and observe an operator using it without coaching. |
+| Tech and deployment | 4 | Fifty-five automated tests pass. Twenty real Firebase HTTP checks verify persistence, two-account isolation, stale writes, snapshots and deletion; the browser walkthrough verifies actual private workflow and exports. Recovery and broader production operations remain open. | Reproduce deployment from main, verify recovery and retain versioned evidence. |
+| Security and ethics | 3.5 pending operational review | Synthetic examples, deterministic lineage and explicit uncertainty are supported by genuine-account API isolation checks. Production dependency audit reports zero findings and a real-token direct Firestore request returned 403 under the deny-all rules. Recovery, provider retention and practitioner review remain open. | Test recovery, clarify account/provider retention and complete practitioner acceptance. |
 
-## Adversarial judge questions and direct answers
+## Questions a skeptical reviewer should ask
 
-**“Why isn't this just a spreadsheet join?”**
+**Why is this more than a spreadsheet join?**
 
-The core joins should indeed be simple and deterministic. The product value to test is the complete review workflow around them: importing existing layouts, retaining source references, refusing unsupported links, and producing a drill record. If buyers can do this comfortably in their current sheets, we have not earned a business.
+The identifier joins should be simple and deterministic. The product hypothesis is the review workflow around them: reviewed mapping, retained original cells, visible missing links, documented corrections, saved rehearsals and portable evidence. If the target buyer already does this comfortably in sheets, we have not earned a business.
 
-**“Why use AI?”**
+**Where is the AI?**
 
-Unfamiliar column layouts are a reasonable bounded use for AI suggestions. Users can review them, and the trace does not depend on a model inventing relationships. If no provider key is configured, do not pretend an AI call occurred. The deployable product should still work through explicit mappings.
+The current deployment uses rules. It does not need a live model key and does not claim one is running. The right engineering choice is to keep exact identifier lineage deterministic. Optional model suggestions existed in the earlier adapter but are not the active Firebase mapping feature.
 
-**“Is this safe for a real recall?”**
+**Who pays?**
 
-It is a record preparation and rehearsal tool. It does not decide food safety or incident scope. Until practitioner review and production gates pass, do not represent it as a replacement for established incident procedures.
+The candidate buyer is a small packaged-food producer's quality or operations lead. CAD 99 per site per month is a pricing experiment, not a subscription with proven demand. A guided one-off rehearsal may fit episodic demand better.
 
-**“Who pays?”**
+**Can this manage a real recall?**
 
-The candidate buyer is the operations/quality lead at a small packaged-food maker using spreadsheets. Proposed pricing is an experiment. No one has been shown to pay yet.
+It prepares records for review and rehearses one transformation layer. It does not decide food safety or incident scope. Actual operational use needs practitioner acceptance, suitable data handling and tested recovery/support procedures.
 
-**“Why not Katana or FoodDocs?”**
+**What is the defensible advantage?**
 
-They already support traceability and may be the better choice for buyers needing broad inventory or food-safety operations. Lotline tests a narrower adoption path around existing records and visible gaps. We do not claim competitors lack these abilities without testing them.
+Potential advantages are reliable workflow fit, reviewed source mappings and reconciliation patterns. There is no established moat, proprietary customer dataset or network effect today. Broad inventory and food-safety products remain credible alternatives.
 
-**“What would stop you from launching tomorrow?”**
+## Submission improvements
 
-Practitioner validation, customer discovery, production data handling and tested deployment are real gates. For this specific competition, eligibility, registration and Toronto attendance also require confirmation. Strong execution includes acknowledging those gates rather than faking completion.
+Show a complete real interaction rather than a feature list. Spend screen time on the missing shipment and source evidence, then show import and an actual export. Use the genuine saved-workspace/history path in the video. Keep commercial claims explicitly hypothetical. Disclose scaffolding and substantial Codex assistance while crediting Shivam's product direction and decisions accurately.
 
-## Improvements that should change a judge's mind
+## Final acceptance perspective
 
-1. Prove a complete real interaction, from a sample CSV through trace, source row, ambiguity and export.
-2. Show a failed/incomplete case as carefully as the happy path.
-3. Publish tested architecture and limitations in the repository.
-4. Keep the final video short and legible. Let working evidence carry the story.
-5. Add one genuine practitioner review if available, with permission and honest attribution. Do not manufacture it.
+The strongest demonstrated improvement is dependable evidence handling: the product now preserves a missing link through import, trace, saved history and downloaded output. A real Firebase deployment and genuine-account isolation checks substantiate the technical story.
+
+The largest remaining scoring constraint is commercial validation. A clear target user is not an observed user; a proposed price is not willingness to pay. Broad traceability already exists, so the adoption wedge must be proved with a practitioner rather than described as a moat. Avoid adding unsupported AI claims to make the project sound more ambitious.
+
+Production operations are also narrower than the phrase production ready suggests. Backup restoration, support procedures, retention/account deletion and inventory scenarios beyond one transformation are still open. The final narrative should describe the tested release precisely while presenting these as the next measured steps.

@@ -2631,3 +2631,225 @@ tbody tr:last-child td {
     line-height: 1.55;
   }
 }
+/* A quiet working surface with readable evidence and clear account states. */
+:root {
+  --bg: #f5f5ef;
+  --paper: #fffefb;
+  --ink: #243c31;
+  --muted: #5d6c5c;
+  --line: #e0e5d8;
+  --green: #28543f;
+  --sidebar: #fafbf5;
+}
+.page-heading h1 {
+  letter-spacing: -0.055em;
+}
+.page-heading p,
+.section-heading p,
+.muted,
+.modal > p,
+.metric > div,
+.metric p,
+.demo-banner,
+.lineage-footer,
+.lot-card p,
+.card-line,
+.balance-note,
+.customer-card small,
+.review-panel > p,
+.issue-preview small,
+.drill-card p,
+.drill-card > small,
+.fineprint,
+.modal .fineprint,
+.raw-source p {
+  color: #56674e;
+}
+.eyebrow,
+.lineage-labels,
+.source-link,
+.issue-preview strong {
+  color: #4f6844;
+}
+.modal > p {
+  font-size: 14px;
+  line-height: 1.7;
+}
+.modal label {
+  color: #3f553b;
+  font-size: 12px;
+  font-weight: 600;
+}
+.modal input:not([type="file"]),
+.modal select,
+.modal textarea {
+  color: #263d28;
+  font-size: 14px;
+  background: #fbfcf6;
+  min-height: 44px;
+  border-color: #cdd8c2;
+}
+.modal .fineprint,
+.fineprint {
+  font-size: 12px;
+  line-height: 1.6;
+}
+.modal input[type="file"] {
+  font-size: 12px;
+}
+.modal .modal-header h2 {
+  font-size: 25px;
+  line-height: 1.25;
+}
+.modal .btn {
+  min-height: 43px;
+  font-size: 13px;
+}
+.auth-tabs {
+  display: flex;
+  width: 100%;
+  margin: 24px 0 8px;
+}
+.auth-tabs button {
+  flex: 1;
+  min-height: 42px;
+}
+.auth-form > .btn {
+  margin-top: 22px;
+}
+.auth-reset {
+  margin-top: 18px;
+  min-height: 30px;
+}
+.password-field {
+  position: relative;
+}
+.modal .password-field input {
+  padding-right: 48px;
+}
+.password-field button {
+  position: absolute;
+  right: 5px;
+  top: 5px;
+  width: 36px;
+  height: 36px;
+}
+.form-error,
+.form-notice {
+  font-size: 13px;
+  line-height: 1.6;
+  padding: 12px 14px;
+  margin: 16px 0;
+  border-radius: 8px;
+}
+.form-error {
+  background: #fff1e7;
+  border: 1px solid #ebc8a8;
+  color: #863c1b;
+}
+.form-notice {
+  background: #eef5e5;
+  border: 1px solid #cbdcbb;
+  color: #33532b;
+}
+.record-actions {
+  display: flex;
+  gap: 4px;
+}
+.record-actions .iconbtn {
+  min-width: 32px;
+  min-height: 32px;
+}
+.evidence-record dd {
+  overflow-wrap: anywhere;
+}
+.raw-source p {
+  font-size: 12px;
+}
+.toast {
+  max-width: min(560px, calc(100vw - 32px));
+}
+.saved-workspace > button:first-child strong {
+  overflow-wrap: anywhere;
+}
+@media (max-width: 620px) {
+  .modal {
+    padding: 22px;
+  }
+  .modal .mapping-grid {
+    grid-template-columns: 1fr;
+  }
+  .top-actions .btn {
+    font-size: 11px;
+    min-height: 38px;
+  }
+  .breadcrumb {
+    font-size: 11px;
+  }
+  .modal .modal-header h2 {
+    font-size: 23px;
+  }
+  .modal input:not([type="file"]),
+  .modal select,
+  .modal textarea {
+    font-size: 16px;
+  }
+  .modal .btn {
+    min-height: 44px;
+  }
+  .auth-tabs button {
+    min-height: 44px;
+  }
+}
+.records-panel table {
+  font-size: 12px;
+}
+.records-panel th {
+  font-size: 11px;
+  color: #55664b;
+  font-weight: 600;
+}
+.records-panel td {
+  color: #3f5538;
+}
+.source-pill {
+  font-size: 11px;
+  color: #4d673e;
+}
+.source-downloads strong {
+  font-size: 13px;
+  color: #425b36;
+}
+.source-downloads p {
+  font-size: 12px;
+  color: #607450;
+}
+.source-downloads .btn {
+  color: #4c633f;
+}
+.navigation-scrim {
+  display: none;
+}
+@media (max-width: 620px) {
+  .navigation-scrim {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 24;
+    background: #19332255;
+    backdrop-filter: blur(2px);
+  }
+}
+.drawer-close {
+  display: none;
+}
+@media (max-width: 620px) {
+  .drawer-close {
+    display: grid;
+    position: absolute;
+    top: 9px;
+    right: 9px;
+    min-width: 32px;
+    min-height: 32px;
+  }
+}

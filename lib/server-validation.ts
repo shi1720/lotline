@@ -48,9 +48,9 @@ const common = {
 export const receiptSchema = z
   .object({
     ...common,
-    ingredient: printable(),
+    ingredient: nonempty(),
     lot: printable(120),
-    supplier: printable(),
+    supplier: nonempty(),
     receivedDate: isoDate,
   })
   .strict();
@@ -58,8 +58,8 @@ export const productionSchema = z
   .object({
     ...common,
     batch: printable(120),
-    product: printable(),
-    ingredient: printable(),
+    product: nonempty(),
+    ingredient: nonempty(),
     lot: printable(120),
     producedDate: isoDate,
     outputQuantity: quantity,
@@ -70,7 +70,7 @@ export const shipmentSchema = z
   .object({
     ...common,
     batch: printable(120),
-    product: printable(),
+    product: nonempty(),
     customer: printable(),
     email: printable(320),
     shippedDate: isoDate,

@@ -57,3 +57,7 @@ next-env.d.ts
 
 # TypeScript build cache
 *.tsbuildinfo
+
+# Firebase deployment cache
+/.firebase/
+firebase-debug.log*

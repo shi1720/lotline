@@ -226,6 +226,21 @@ export function analyze(dataset: Dataset, requestedLot: string): TraceResult {
       "No production evidence",
       "No production records explicitly reference this lot. This does not establish that the lot was unused.",
     );
+  const missingReceiptIdentity = receipts.some((r) => !nameKey(r.ingredient) || !nameKey(r.supplier));
+  const missingProductionIdentity = selected.some((r) => !nameKey(r.ingredient) || !nameKey(r.product));
+  for (const r of receipts)
+    if (!nameKey(r.ingredient) || !nameKey(r.supplier))
+      issue("critical", "Missing receipt identity", "Ingredient and supplier names are required to establish the receipt identity.", r);
+  for (const r of selected)
+    if (!nameKey(r.ingredient) || !nameKey(r.product))
+      issue("critical", "Missing production identity", "Ingredient and product names are required to establish the production identity.", r);
+  // Dates are calendar days, not timestamps. A same-day receipt may support production.
+  // Multiple deliveries remain usable; no arbitrary single receipt is assigned to a use.
+  const productionBeforeReceipts = selected.filter((r) =>
+    receipts.length > 0 && !receipts.some((receipt) => receipt.receivedDate <= r.producedDate),
+  );
+  for (const r of productionBeforeReceipts)
+    issue("critical", "Production predates receipt evidence", "This production date is before every recorded receipt for the selected lot. Verify the dates and receipt evidence before relying on balances.", r);
   const ingredients = [
     ...new Set(
       [...receipts, ...selected]
@@ -266,10 +281,13 @@ export function analyze(dataset: Dataset, requestedLot: string): TraceResult {
       "Incompatible ingredient units",
       "Ingredient balances cannot combine different units. Convert and re-import the source records.",
     );
-  const inputQuantityComplete =
+  const inputEvidenceComplete =
     units.length === 1 &&
     ingredients.length === 1 &&
     !supplierCollision &&
+    !missingReceiptIdentity &&
+    !missingProductionIdentity &&
+    productionBeforeReceipts.length === 0 &&
     receipts.length > 0 &&
     !rejectedKinds.has("Receipt") &&
     !rejectedKinds.has("Production");
@@ -284,6 +302,7 @@ export function analyze(dataset: Dataset, requestedLot: string): TraceResult {
       "Ingredient balance exceeds receipts",
       `Production uses ${-remainingQuantity} ${unit} more than recorded receipts.`,
     );
+  const inputQuantityComplete = inputEvidenceComplete && remainingQuantity >= 0;
   const batchIds = [
     ...new Set(selected.map((r) => key(r.batch)).filter(Boolean)),
   ];
@@ -306,6 +325,17 @@ export function analyze(dataset: Dataset, requestedLot: string): TraceResult {
         first,
       );
     const matching = shipments.filter((r) => key(r.batch) === id);
+    let shipmentEvidenceConflict = false;
+    for (const r of matching) {
+      if (!nameKey(r.product)) {
+        shipmentEvidenceConflict = true;
+        issue("critical", "Missing shipment product", "A linked shipment has no product identity. Verify the original shipment record.", r);
+      }
+      if (r.shippedDate < first.producedDate) {
+        shipmentEvidenceConflict = true;
+        issue("critical", "Shipment predates production", `Shipment for ${first.batch} is dated before its recorded production. The explicit batch link remains visible for investigation.`, r);
+      }
+    }
     const valid = matching.filter((r) => {
       if (unitKey(r.unit) !== unitKey(first.outputUnit)) {
         issue(
@@ -316,18 +346,22 @@ export function analyze(dataset: Dataset, requestedLot: string): TraceResult {
         );
         return false;
       }
-      if (nameKey(r.product) && nameKey(r.product) !== nameKey(first.product))
+      if (nameKey(r.product) && nameKey(r.product) !== nameKey(first.product)) {
+        shipmentEvidenceConflict = true;
         issue(
           "critical",
           "Shipment product conflict",
           `Shipment product conflicts with batch ${first.batch}. The explicit batch link remains in the trace.`,
           r,
         );
+      }
       return true;
     });
     const shippedQuantityKnown =
       valid.length === matching.length && !rejectedKinds.has("Shipment");
-    const balanceKnown = consistent && shippedQuantityKnown;
+    const balanceEvidenceKnown = consistent && shippedQuantityKnown && !shipmentEvidenceConflict &&
+      all.every((r) => !!nameKey(r.product) && !!nameKey(r.ingredient)) &&
+      !productionBeforeReceipts.some((r) => key(r.batch) === id);
     const shippedQuantity = sum(valid.map((r) => r.quantity)),
       onHandQuantity = sum([first.outputQuantity, -shippedQuantity]);
     if (onHandQuantity < 0)
@@ -349,8 +383,8 @@ export function analyze(dataset: Dataset, requestedLot: string): TraceResult {
       onHandQuantity,
       shipments: matching,
       evidence,
-      balanceKnown,
-      shippedQuantityKnown,
+      balanceKnown: balanceEvidenceKnown && onHandQuantity >= 0,
+      shippedQuantityKnown: shippedQuantityKnown && !shipmentEvidenceConflict,
     };
   });
   const products = new Set(batches.map((b) => nameKey(b.product)));

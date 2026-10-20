@@ -1,10 +1,10 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-// @ts-ignore Node strip-types tests require explicit .ts extensions.
+// @ts-expect-error Node strip-types tests require explicit .ts extensions.
 import { analyze } from "../lib/trace.ts";
-// @ts-ignore Node strip-types tests require explicit .ts extensions.
+// @ts-expect-error Node strip-types tests require explicit .ts extensions.
 import { demoDataset } from "../lib/demo.ts";
-// @ts-ignore Node strip-types tests require explicit .ts extensions.
+// @ts-expect-error Node strip-types tests require explicit .ts extensions.
 import { parseCSV, importRows, defaultMapping } from "../lib/import.ts";
 const data = () => structuredClone(demoDataset);
 test("confirmed scope balances 100kg, 90kg used, 900 cases output, 650 shipped and 250 on hand", () => {
@@ -285,3 +285,30 @@ test("CSV row provenance remains compatible when rowNumbers is omitted", () => {
 });
 test('imports preserve complete untrimmed source evidence including unmapped address and multiline notes',()=>{const parsed=parseCSV('ingredient,lot,supplier,receivedDate,quantity,unit,address,note\nSesame,X,S,2026-10-01,10,kg,"  100 Main St  ","first line\nsecond line"');const result=importRows('receipts',parsed.headers,parsed.rows,defaultMapping('receipts',parsed.headers),'evidence.csv',parsed.rowNumbers);assert.equal(result.errors.length,0);assert.equal(result.records[0].sourceData?.address,'  100 Main St  ');assert.equal(result.records[0].sourceData?.note,'first line\nsecond line');assert.equal(result.records[0].sourceData?.quantity,'10');assert.equal(result.records[0].quantity,10);});
 test('extra raw source evidence cannot conceal semantic duplicate business records',()=>{const d=data();d.receipts[0].sourceData={note:'first raw note'};d.receipts.push({...d.receipts[0],id:'raw-duplicate',source:'another.csv',row:20,sourceData:{note:'different raw note',address:'new evidence'}});const r=analyze(d,'SES-104');assert.equal(r.inputQuantity,100);assert.equal(r.receipts.length,1);assert.ok(r.issues.some(i=>i.title==='Duplicate record'));assert.equal(r.inputQuantityComplete,false);});
+
+test('shipment before production stays linked but blocks quantitative assurance', () => {
+  const d=data();d.shipments=d.shipments.filter(s=>s.batch);d.shipments[0].shippedDate='2020-01-01';
+  const r=analyze(d,'SES-104');assert.equal(r.ready,false);assert.equal(r.quantitativeComplete,false);assert.equal(r.batches[0].balanceKnown,false);assert.equal(r.batches[0].shipments.length,2);assert.ok(r.issues.some(i=>i.title==='Shipment predates production'));
+});
+test('production before every lot receipt blocks assurance without dropping lineage', () => {
+  const d=data();d.shipments=d.shipments.filter(s=>s.batch);d.production[0].producedDate='2020-01-01';
+  const r=analyze(d,'SES-104');assert.equal(r.ready,false);assert.equal(r.inputQuantityComplete,false);assert.equal(r.outputQuantityComplete,false);assert.equal(r.batches.length,2);assert.ok(r.issues.some(i=>i.title==='Production predates receipt evidence'));
+});
+test('multiple deliveries and same-day receipt do not create a false chronological conflict', () => {
+  const d=data();d.shipments=d.shipments.filter(s=>s.batch);d.receipts[0].receivedDate=d.production[0].producedDate;d.receipts.push({...d.receipts[0],id:'later-delivery',row:50,receivedDate:'2026-10-20',quantity:10});
+  const r=analyze(d,'SES-104');assert.equal(r.ready,true);assert.equal(r.quantitativeComplete,true);assert.ok(!r.issues.some(i=>i.title==='Production predates receipt evidence'));
+});
+test('missing receipt or production identities cannot produce a ready trace', () => {
+  for(const mutate of [
+    (d:ReturnType<typeof data>)=>{d.receipts[0].supplier='';},
+    (d:ReturnType<typeof data>)=>{d.receipts[0].ingredient='';},
+    (d:ReturnType<typeof data>)=>{d.production[0].ingredient='';d.production[1].ingredient='';},
+    (d:ReturnType<typeof data>)=>{d.production[0].product='';d.shipments[0].product='';d.shipments[1].product='';},
+  ]){const d=data();d.shipments=d.shipments.filter(s=>s.batch);mutate(d);const r=analyze(d,'SES-104');assert.equal(r.ready,false);assert.equal(r.quantitativeComplete,false);assert.ok(r.issues.some(i=>i.title.startsWith('Missing ')));}
+});
+test('blank or conflicting linked shipment product blocks assurance while preserving customer scope', () => {
+  for(const product of ['', 'Different product']){const d=data();d.shipments=d.shipments.filter(s=>s.batch);d.shipments[0].product=product;const r=analyze(d,'SES-104');assert.equal(r.ready,false);assert.equal(r.outputQuantityComplete,false);assert.equal(r.customers.length,3);}
+});
+test('negative ingredient or finished balances cannot claim quantitative completeness', () => {
+  for(const mutate of [(d:ReturnType<typeof data>)=>{d.receipts[0].quantity=10;},(d:ReturnType<typeof data>)=>{d.shipments[0].quantity=1000;}]){const d=data();d.shipments=d.shipments.filter(s=>s.batch);mutate(d);const r=analyze(d,'SES-104');assert.equal(r.ready,false);assert.equal(r.quantitativeComplete,false);}
+});
