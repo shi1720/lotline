@@ -1,0 +1,4 @@
+batch,product,ingredient,lot,quantity,unit,producedDate,outputQuantity,outputUnit
+"CR-201","Sesame Crunch","Sesame seeds","SES-104","60","kg","2026-10-15","600","cases"
+"CR-202","Sesame Crunch","Sesame seeds","SES-104","30","kg","2026-10-16","300","cases"
+"CR-203","Sesame Crunch","Sesame seeds","SES-105","40","kg","2026-10-17","400","cases"

@@ -1,0 +1,6 @@
+batch,product,customer,email,shippedDate,quantity,unit
+"CR-201","Sesame Crunch","Cedar Market (demo)","cedar@example.com","2026-10-16","300","cases"
+"CR-201","Sesame Crunch","Harbour Foods (demo)","harbour@example.com","2026-10-16","150","cases"
+"CR-202","Sesame Crunch","Maple Co-op (demo)","maple@example.com","2026-10-17","200","cases"
+"","Sesame Crunch","Cedar Market (demo)","cedar@example.com","2026-10-18","40","cases"
+"CR-203","Sesame Crunch","Harbour Foods (demo)","harbour@example.com","2026-10-18","100","cases"
