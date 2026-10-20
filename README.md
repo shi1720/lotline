@@ -69,7 +69,7 @@ Lotline does not decide food safety, recall necessity or legal compliance. Befor
 
 [Public repository](https://github.com/shi1720/lotline) · [Live application](https://lotline-recall.sg127977958.chatgpt.site)
 
-The public application and repository have been verified accessible. The first verified production deployment corresponds to commit `0a95369`; subsequent fixes require a fresh deployment and smoke check. Video recording and Devpost submission remain separate steps. Official eligibility requires Canadian residence; see the launch checklist for registration and Toronto attendance gates.
+The public application and repository have been verified accessible. GitHub Actions passed the clean install, typecheck, all 41 tests, production dependency audit and build for functionality release `8697e0c`. The current release manifest records the exact deployed source revision. Video recording and Devpost submission remain separate steps. Official eligibility requires Canadian residence; see the launch checklist for registration and Toronto attendance gates.
 
 ## License and attribution
 

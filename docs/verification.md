@@ -7,7 +7,7 @@ This record separates automated tests, production browser checks and remaining g
 - [Live Lotline application](https://lotline-recall.sg127977958.chatgpt.site)
 - [Public GitHub repository](https://github.com/shi1720/lotline)
 
-Both artifacts were verified public and accessible. The first verified production deployment corresponds to source commit **0a95369**. Additional fixes were subsequently prepared; do not assume an unredeployed source change is already live. Rerun the smoke checks after each publication and record the resulting deployment revision.
+Both artifacts were verified public and accessible. Functionality release **8697e0c** deployed successfully on 20 October 2026. Its GitHub Actions run [39472231554](https://github.com/shi1720/lotline/actions/runs/39472231554) passed clean install, TypeScript, all 41 tests, production audit and build. A subsequent layout-only refinement keeps the sample rehearsal report together. The final release manifest identifies the exact deployed source revision.
 
 ## Automated checks
 
@@ -73,8 +73,12 @@ Dependency audit status is recorded in SECURITY.md: production-only audit report
 - No live Anthropic API call has been made or required for this deployment.
 - No practitioner acceptance, actual customer operational use, paid pilot, revenue, measured time savings or willingness to pay is established.
 - Data residency suitability, backup restoration, hosting retention/deletion commitments, operational monitoring and incident-response readiness have not been independently established.
-- CI is planned separately; this record does not claim an executed remote CI run.
+- Remote CI passed for functionality release 8697e0c; final revision status is also available on the repository Actions page.
 - Eligibility, late-registration acceptance, Canadian residence and Toronto attendance remain unconfirmed.
 - Video recording/upload and Devpost submission remain unfinished.
 
 Use docs/launch-checklist.md to track those remaining gates. A functioning demonstration and a public deployment are real accomplishments; neither establishes suitability for a real food-safety incident without the remaining review.
+
+## Final hosted smoke check
+
+The final hosted sample shows 2 actionable findings, 650 confirmed shipped cases, 250 cases balance excluding unresolved shipments, and the separate 40-case unresolved shipment. Original CSV row evidence is visible in the receiving dialog. The /privacy page returns HTTP 200. The real browser-generated PDF was downloaded and visually reviewed; the initial orphaned boundaries section prompted a print-spacing refinement. CSV exports retain correction columns and unresolved scope.
